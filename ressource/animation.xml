@@ -1,0 +1,46 @@
+<?xml version = "1.0" encoding="UTF-8" standalone="yes"?>
+
+<!DOCTYPE animationFile
+[
+    <!ELEMENT animationFile (animationGroup)>
+    <!ELEMENT animationGroup      (spriteSheetPath, animation+)>
+    <!ATTLIST animationGroup name ID #REQUIRED>
+    <!ELEMENT spriteSheetPath    (#PCDATA)>
+    <!ELEMENT animation (frameCount, frameWidth, frameHeight, frameCenterX, frameCenterY, framePosX, framePosY, animDuration)>
+    <!ATTLIST animation state ID #REQUIRED>
+    <!ELEMENT frameCount    (#PCDATA)>
+    <!ELEMENT frameWidth    (#PCDATA)>
+    <!ELEMENT frameHeight    (#PCDATA)>
+    <!ELEMENT frameCenterX    (#PCDATA)>
+    <!ELEMENT frameCenterY    (#PCDATA)>
+    <!ELEMENT framePosX    (#PCDATA)>
+    <!ELEMENT framePosY    (#PCDATA)>
+    <!ELEMENT animDuration    (#PCDATA)>
+]>
+
+<animationFile>
+	<animationGroup name = "mainPlayer">
+		<spriteSheetPath>"player-sprite_sheet.png"</spriteSheetPath>
+		<animation state = "IDLE">
+			<frameCount>1</frameCount>
+			<frameWidth>48</frameWidth>
+			<frameHeight>58</frameHeight>
+			<frameCenterX>24</frameCenterX>
+			<frameCenterY>43</frameCenterY>
+			<framePosX>0</framePosX>
+			<framePosY>0</framePosY>
+			<animDuration>1000</animDuration>
+		</animation>
+
+		<animation state = "FORWARD">
+			<frameCount>4</frameCount>
+			<frameWidth>48</frameWidth>
+			<frameHeight>58</frameHeight>
+			<frameCenterX>24</frameCenterX>
+			<frameCenterY>43</frameCenterY>
+			<framePosX>0</framePosX>
+			<framePosY>58</framePosY>
+			<animDuration>400</animDuration>
+		</animation>
+	</animationGroup>
+</animationFile>
