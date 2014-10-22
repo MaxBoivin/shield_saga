@@ -20,7 +20,7 @@ const std::string APPLICATION_NAME = "Shield Saga";
 //Path for the sprite sheet of the character.
 const std::string CHARACTER_SPRITESHEET_PATH = "ressource/player-sprite_sheet";
 
-const std::string TERRAIN_SPRITESHEET = "ressource/terrain-sprite_sheet";
+const std::string TERRAIN_SPRITESHEET_PATH = "ressource/terrain-sprite_sheet";
 
 //Path for the texture for the menu
 const std::string DASHLEY_FONT_PATH = "ressource/Dashley.ttf";
@@ -417,6 +417,9 @@ player::player()
     free();
     loadAnim();
     SDL_DestroyTexture(spriteSheet);
+
+    //this is a temporary hack
+    weapon = SHIELD_SPEAR;
 }
 
 //Player destructor
@@ -435,10 +438,8 @@ void player::free()
     speed = 0.1;
     lastUpdate = gTimer.getTime();
 
+    SDL_DestroyTexture(spriteSheet);
     spriteSheet = NULL;
-
-    //this is a temporary hack
-    weapon = SHIELD_SPEAR;
 }
 
 void player::loadAnim()
@@ -466,7 +467,14 @@ void player::loadAnim()
                     {
                         if (animName == characterStateName[j])
                         {
-                            animFile >> stateAnim[i][j].frameCount >> stateAnim[i][j].frameW >> stateAnim[i][j].frameH >> stateAnim[i][j].frameCenterW >> stateAnim[i][j].frameCenterH >> stateAnim[i][j].framePosX >> stateAnim[i][j].framePosY >> stateAnim[i][j].animDuration;
+                            animFile >> stateAnim[i][j].frameCount
+                                >> stateAnim[i][j].frameW
+                                >> stateAnim[i][j].frameH
+                                >> stateAnim[i][j].frameCenterW
+                                >> stateAnim[i][j].frameCenterH
+                                >> stateAnim[i][j].framePosX
+                                >> stateAnim[i][j].framePosY
+                                >> stateAnim[i][j].animDuration;
                         }
                     }
                 }
@@ -765,6 +773,8 @@ void close()
     //Free loaded images
 
 	//Deallocate surface
+    SDL_DestroyTexture( gTerrainSprite);
+    gTerrainSprite = NULL;
 
     //Free global font
     TTF_CloseFont( gFontDashley );
@@ -786,12 +796,12 @@ SDL_Texture* loadTexture(std::string path)
 {
     SDL_Texture* newTexture = NULL;
 
-    std::string pngPath = path;
+    /*std::string pngPath = path;
 
-    pngPath = pngPath + ".png";
+    pngPath = pngPath + ".png";*/
 
     //Load image at specified path
-	SDL_Surface* loadedSurface = IMG_Load( pngPath.c_str() );
+	SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
 
 	if( loadedSurface == NULL )
 	{
@@ -817,6 +827,50 @@ SDL_Texture* loadTexture(std::string path)
     SDL_SetTextureBlendMode( newTexture, SDL_BLENDMODE_BLEND );
 
 	return newTexture;
+}
+
+bool loadTerrain()
+{
+    bool success = false;
+
+    gTerrainSprite = loadTexture((TERRAIN_SPRITESHEET_PATH + ".png").c_str());
+
+    std::ifstream terrainFile((TERRAIN_SPRITESHEET_PATH + ".ter").c_str());
+
+    if (terrainFile.is_open())
+    {
+        while (!terrainFile.eof())
+        {
+            std::string terrainName;
+
+            terrainFile >> terrainName;
+
+            for (int i = 0; i < TERRAIN_COUNT; i++)
+            {
+                if (terrainName == terrainTypeName[i])
+                {
+                    terrainFile >> gTerrain[i].spriteW;/*
+                        >> gTerrain[i].spriteH
+                        >> gTerrain[i].spriteCenterW
+                        >> gTerrain[i].spriteCenterH
+                        >> gTerrain[i].spritePosX
+                        >> gTerrain[i].spritePosY
+                        >> gTerrain[i].colide
+                        >> gTerrain[i].health
+                        >> gTerrain[i].resPiercing
+                        >> gTerrain[i].resCuting
+                        >> gTerrain[i].resSmashing
+                        >> gTerrain[i].decayTo
+                        >> gTerrain[i].zLayer;*/
+                        std::cout << "Loading terrain " << terrainTypeName[i] << std::endl;
+                }
+            }
+        }
+    }
+
+    terrainFile.close();
+
+    return success;
 }
 
 float evalDistance(float x1, float y1, float x2, float y2)
@@ -1001,7 +1055,7 @@ void newGame()
     //Start the global timer
     gTimer.start();
     gPlayer.free();
-    gPlayer.spriteSheet = loadTexture(CHARACTER_SPRITESHEET_PATH);
+    gPlayer.spriteSheet = loadTexture((CHARACTER_SPRITESHEET_PATH + ".png").c_str());
 }
 
 //Main function
@@ -1013,7 +1067,7 @@ int main(int argc, char* argv[])
 	{
 		printf( "Failed to initialize!\n" );
 	}
-	else
+	else if( !loadTerrain())
 	{
 
         pause();
@@ -1056,6 +1110,10 @@ int main(int argc, char* argv[])
             //Update screen
             SDL_RenderPresent( gRenderer );
         }
+    }
+    else
+    {
+        std::cout << "Failed to load terrain.";
     }
 
 
