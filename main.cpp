@@ -15,6 +15,8 @@ const float PI = 3.14159f;
 const int SCREEN_WIDTH = 1280;
 const int SCREEN_HEIGHT = 480;
 
+const int FRAME_RATE = 60;
+
 const std::string APPLICATION_NAME = "Shield Saga";
 
 //Path for the sprite sheet of the character.
@@ -278,7 +280,7 @@ class terrain
         float resSmashing;
 
         //If the terrain is destroyed, what replace it
-        terrainType decayTo;
+        std::string decayTo;
 
         //the Oreder in what the terrain must be rendered
         int zLayer;
@@ -665,7 +667,7 @@ terrain::terrain()
     resPiercing = -1;
     resCuting = -1;
     resSmashing = -1;
-    decayTo = DIRT;
+    decayTo = "DIRT";
     zLayer = -1;
 }
 
@@ -682,7 +684,7 @@ terrain::~terrain()
     resPiercing = -1;
     resCuting = -1;
     resSmashing = -1;
-    decayTo = DIRT;
+    decayTo = "DIRT";
     zLayer = -1;
 }
 
@@ -796,10 +798,6 @@ SDL_Texture* loadTexture(std::string path)
 {
     SDL_Texture* newTexture = NULL;
 
-    /*std::string pngPath = path;
-
-    pngPath = pngPath + ".png";*/
-
     //Load image at specified path
 	SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
 
@@ -849,20 +847,36 @@ bool loadTerrain()
             {
                 if (terrainName == terrainTypeName[i])
                 {
-                    terrainFile >> gTerrain[i].spriteW;/*
+
+                    std::string tempColide;
+                    std::string tempDecayTo;
+
+                    terrainFile >> gTerrain[i].spriteW
                         >> gTerrain[i].spriteH
                         >> gTerrain[i].spriteCenterW
                         >> gTerrain[i].spriteCenterH
                         >> gTerrain[i].spritePosX
                         >> gTerrain[i].spritePosY
-                        >> gTerrain[i].colide
+                        >> tempColide
                         >> gTerrain[i].health
                         >> gTerrain[i].resPiercing
                         >> gTerrain[i].resCuting
                         >> gTerrain[i].resSmashing
                         >> gTerrain[i].decayTo
-                        >> gTerrain[i].zLayer;*/
-                        std::cout << "Loading terrain " << terrainTypeName[i] << std::endl;
+                        >> gTerrain[i].zLayer;
+
+                        for (int j = 0; j < tempColide.length(); j++)
+                        {
+                            tempColide[j] = std::toupper(tempColide[j]);
+                        }
+                        if (tempColide == "TRUE")
+                        {
+                            gTerrain[i].colide = true;
+                        }
+                        else
+                        {
+                            gTerrain[i].colide = false;
+                        }
                 }
             }
         }
@@ -917,51 +931,63 @@ bool pause()
     gTimer.pause();
     bool resumeGame = false;
 
+    Uint32 drawTimer = gTimer.getTime();
+
     SDL_Event e;
 
-        while( !gQuit && !resumeGame)
+    SDL_SetRenderDrawColor( gRenderer, 0x00, 0x00, 0x00, 0x00 );
+    SDL_RenderClear( gRenderer );
+
+    while( !gQuit && !resumeGame)
+    {
+        //Handle events on queue
+        while( SDL_PollEvent( &e ) != 0)
+        {
+            //User requests quit
+            if( e.type == SDL_QUIT)
+            {
+                gQuit = true;
+            }
+            else if(e.type == SDL_MOUSEMOTION )
+            {
+                SDL_GetMouseState( &gMouseX, &gMouseY );
+            }
+            else if (e.type == SDL_MOUSEBUTTONUP)
+            {
+                if (gMouseX < 200 && gMouseX > 20 && gMouseY < 100 && gMouseY > 65)
+                {
+                    resumeGame = true;
+                    gTimer.resume();
+                }
+                else if (gMouseX < 200 && gMouseX > 20 && gMouseY < 135 && gMouseY > 100)
+                {
+                    newGame();
+                    resumeGame = true;
+                }
+                else if (gMouseX < 200 && gMouseX > 20 && gMouseY < 275 && gMouseY > 240)
+                {
+                    gQuit = true;
+                    resumeGame = true;
+                }
+            }
+        }
+
+        if ((gTimer.getTime() - drawTimer)/(1000/FRAME_RATE) >= 1)
         {
             SDL_SetRenderDrawColor( gRenderer, 0x00, 0x00, 0x00, 0x00 );
             SDL_RenderClear( gRenderer );
-
-            //Handle events on queue
-            while( SDL_PollEvent( &e ) != 0)
-            {
-                //User requests quit
-                if( e.type == SDL_QUIT)
-                {
-                    gQuit = true;
-                }
-                else if(e.type == SDL_MOUSEMOTION )
-                {
-                    SDL_GetMouseState( &gMouseX, &gMouseY );
-                }
-                else if (e.type == SDL_MOUSEBUTTONUP)
-                {
-                    if (gMouseX < 200 && gMouseX > 20 && gMouseY < 100 && gMouseY > 65)
-                    {
-                        resumeGame = true;
-                        gTimer.resume();
-                    }
-                    else if (gMouseX < 200 && gMouseX > 20 && gMouseY < 135 && gMouseY > 100)
-                    {
-                        newGame();
-                        resumeGame = true;
-                    }
-                    else if (gMouseX < 200 && gMouseX > 20 && gMouseY < 275 && gMouseY > 240)
-                    {
-                        gQuit = true;
-                        resumeGame = true;
-                    }
-                }
-            }
-
             menuDisplay();
-
-            //Update screen
-            SDL_RenderPresent( gRenderer );
+            drawTimer = gTimer.getTime();
         }
-        gPlayer.changeState(IDLE);
+
+
+        //Update screen
+        SDL_RenderPresent( gRenderer );
+    }
+    gPlayer.evaluateKeyInput(SDL_GetKeyboardState( NULL ));
+
+    SDL_RenderClear( gRenderer );
+    SDL_RenderPresent( gRenderer );
 
     return !resumeGame;
 }
@@ -1075,6 +1101,8 @@ int main(int argc, char* argv[])
         //Event handler
         SDL_Event e;
 
+        Uint32 drawTimer = gTimer.getTime();
+
         while( !gQuit )
         {
             SDL_SetRenderDrawColor( gRenderer, 0xEE, 0xEE, 0xEE, 0x00 );
@@ -1100,15 +1128,21 @@ int main(int argc, char* argv[])
                 }
             }
 
-            gPlayer.updatePos();
+            if ((gTimer.getTime() - drawTimer)/(1000/FRAME_RATE) >= 1)
+            {
+                gPlayer.updatePos();
 
-            //Game loop
-            SDL_RenderClear( gRenderer );
+                //Draw stuff on the renderer
+                SDL_RenderClear( gRenderer );
 
-            gPlayer.render(gRenderer);
+                gPlayer.render(gRenderer);
 
-            //Update screen
-            SDL_RenderPresent( gRenderer );
+                //Update screen
+                SDL_RenderPresent( gRenderer );
+
+                drawTimer = gTimer.getTime();
+            }
+
         }
     }
     else
