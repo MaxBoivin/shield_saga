@@ -98,7 +98,7 @@ enum terrainType
     DIRT,
     GRASS,
     TREE_TRUNK_SMALL,
-    BLANK_COLLIDER,
+    BLANK_BOX_COLLIDER,
     BLANK,
     TERRAIN_COUNT //This one serve no purpose other than to have the number of STATE available
 };
@@ -109,7 +109,7 @@ const std::string terrainTypeName[COMBO_COUNT] =
     "DIRT",
     "GRASS",
     "TREE_TRUNK_SMALL",
-    "BLANK_COLLIDER",
+    "BLANK_BOX_COLLIDER",
     "BLANK"
 };
 
@@ -842,10 +842,10 @@ bool player::checkColisionWorld(terrainMap currMap)
 terrain::terrain()
 {
     terrainName = DIRT;
-    spriteW = 48;
-    spriteH = 48;
-    spriteCenterW = 24;
-    spriteCenterH = 24;
+    spriteW = 58;
+    spriteH = 58;
+    spriteCenterW = 29;
+    spriteCenterH = 29;
     spritePosX = 0;
     spritePosY = 0;
     collide = NONE;
@@ -854,16 +854,16 @@ terrain::terrain()
     resCuting = -1;
     resSmashing = -1;
     decayTo = DIRT;
-    zLayer = -1;
+    zLayer = 0;
 }
 
 terrain::~terrain()
 {
     terrainName = DIRT;
-    spriteW = 48;
-    spriteH = 48;
-    spriteCenterW = 24;
-    spriteCenterH = 24;
+    spriteW = 58;
+    spriteH = 58;
+    spriteCenterW = 29;
+    spriteCenterH = 29;
     spritePosX = 0;
     spritePosY = 0;
     collide = NONE;
@@ -872,7 +872,7 @@ terrain::~terrain()
     resCuting = -1;
     resSmashing = -1;
     decayTo = DIRT;
-    zLayer = -1;
+    zLayer = 0;
 }
 
 void terrain::render(SDL_Renderer* renderer, int posX, int posY)
@@ -1293,7 +1293,7 @@ void menuDisplay()
     SDL_Color textUnavailable = {50,50,50};
     renderText("-Menu-", gFontDashley, 20, 20, {185,185,185}, 72);
 
-    if (gPlayer.spriteSheet != NULL) //I need to find something to check if the game just launch
+    if (gPlayer.spriteSheet != NULL) //I need to find something to check if the game just launched
     {
         if (gMouseX < 200 && gMouseX > 20 && gMouseY < 100 && gMouseY > 65)
         {
@@ -1399,6 +1399,8 @@ int main(int argc, char* argv[])
         SDL_Event e;
 
         Uint32 drawTimer = SDL_GetTicks();
+
+        //std::cout << "DIRT zLayer = " << gTerrain[DIRT].zLayer << std::endl;
 
         while( !gQuit )
         {
