@@ -24,7 +24,7 @@ const int TILE_NUMBER_HEIGHT = ceil((float)SCREEN_HEIGHT/(float)MAP_TILE_HEIGHT)
 const int WORLD_WIDTH = 1;
 const int WORLD_HEIGHT = 1;
 
-const int FRAME_RATE = 1000;
+const int FRAME_RATE = 60;
 
 const std::string APPLICATION_NAME = "Shield Saga";
 
@@ -129,6 +129,115 @@ const std::string collisionTypeName[COLLISION_COUNT] =
 };
 
 //class declaration
+
+//some shape class to simply things
+
+class point
+{
+
+    public:
+
+        point();
+
+        point(int setX, int setY);
+
+        int x;
+
+        int y;
+
+    private:
+
+};
+
+class polygon
+{
+    public:
+
+        point position;
+
+        float rotation;
+
+        int sideNumber;
+
+    private:
+};
+
+class triangle: public polygon
+{
+    public:
+
+        triangle();
+
+        triangle(int base, int side1, int side2);
+
+        point vertex[3];
+
+    private:
+};
+
+class triangleEqui: public triangle
+{
+    public:
+
+        triangleEqui();
+
+        triangleEqui(int base);
+
+    private:
+};
+
+class triangleRect: public triangle
+{
+    public:
+
+        triangleRect();
+
+        triangleRect(int base, int height);
+
+    private:
+};
+
+class triangleIso: public triangle
+{
+    public:
+
+        triangleIso();
+
+        triangleIso(int base, int height);
+
+    private:
+};
+
+class rectangle: public polygon
+{
+    public:
+
+        rectangle();
+
+        rectangle(int base, int height);
+
+        point vertex[4];
+
+    private:
+};
+
+class circle
+{
+    public:
+
+        circle();
+
+        circle(int radius);
+
+        int radius;
+
+        point position;
+
+    private:
+
+};
+
+//Game specific classes
 
 class timer
 {
@@ -275,17 +384,17 @@ class animation
 
 };
 
-class player
+class character
 {
     public:
 
         //Function
 
         //Initializes variables
-        player();
+        character();
 
         //Deallocates memory
-        ~player();
+        ~character();
 
         //Deallocates texture
 		void free();
@@ -298,8 +407,6 @@ class player
         void evaluateKeyInput(const Uint8* currentKeyStates);
 
         bool changeState(characterState newState);
-
-        void updatePos();
 
         bool checkColisionWorld(terrainMap currMap);
 
@@ -321,21 +428,35 @@ class player
         Uint32 stateTimer;
 
 		//Character position
-        float posX;
-        float posY;
+		point position;
+        int posX;
+        int posY;
 
         int worldCoordX;
         int worldCoordY;
 
-        float prevPosX;
-        float prevPosY;
+        point prevPosition;
+        int prevPosX;
+        int prevPosY;
 
         Uint32 lastUpdate;
 
         //Character orientation
-        int angle;
+        float angle;
 
         float speed;
+
+    private:
+
+};
+
+class player: public character
+{
+    public:
+
+        //Function
+
+        void updatePos();
 
     private:
 
@@ -399,6 +520,19 @@ void menuDisplay();
 void newGame();
 
 //Class function definition
+
+//Shape class
+point::point()
+{
+    x = 0;
+    y = 0;
+}
+
+point::point(int setX, int setY)
+{
+    x = setX;
+    y = setY;
+}
 
 timer::timer()
 {
@@ -473,7 +607,7 @@ SDL_Rect animation::renderSprite(Uint32 stateTimer)
 }
 
 //Player constructor
-player::player()
+character::character()
 {
     //Initialize the position and orientation
     free();
@@ -485,13 +619,15 @@ player::player()
 }
 
 //Player destructor
-player::~player()
+character::~character()
 {
     free();
 }
 
-void player::free()
+void character::free()
 {
+    position.x = SCREEN_WIDTH/2;
+    position.y = SCREEN_HEIGHT/2;
     posX = SCREEN_WIDTH/2;
     posY = SCREEN_HEIGHT/2;
     worldCoordX = 0;
@@ -506,7 +642,7 @@ void player::free()
     spriteSheet = NULL;
 }
 
-void player::loadAnim()
+void character::loadAnim()
 {
     std::string path = CHARACTER_SPRITESHEET_PATH + ".ani";
 
@@ -550,16 +686,16 @@ void player::loadAnim()
     animFile.close();
 }
 
-void player::render(SDL_Renderer* renderer)
+void character::render(SDL_Renderer* renderer)
 {
     SDL_Point center {(stateAnim[weapon][state].frameCenterW), (stateAnim[weapon][state].frameCenterH)};
     SDL_Rect spriteQuad = (stateAnim[weapon][state].renderSprite(stateTimer));
-    SDL_Rect renderQuad = (stateAnim[weapon][state].renderQuad(posX, posY));
+    SDL_Rect renderQuad = (stateAnim[weapon][state].renderQuad(position.x, position.y));
 
     SDL_RenderCopyEx( renderer, spriteSheet, &spriteQuad, &renderQuad,  angle, &center, SDL_FLIP_NONE );
 }
 
-void player::evaluateKeyInput(const Uint8* currentKeyStates)
+void character::evaluateKeyInput(const Uint8* currentKeyStates)
 {
     if( currentKeyStates[ SDL_SCANCODE_ESCAPE ] )
     {
@@ -639,7 +775,7 @@ void player::evaluateKeyInput(const Uint8* currentKeyStates)
     }*/
 }
 
-bool player::changeState(characterState newState)
+bool character::changeState(characterState newState)
 {
     bool stateChanged = false;
     if (state != newState)
@@ -651,87 +787,7 @@ bool player::changeState(characterState newState)
     return stateChanged;
 }
 
-void player::updatePos()
-{
-    angle = (atan2(posX - gMouseX, posY - gMouseY)*-180/PI);
-
-    prevPosX = posX;
-    prevPosY = posY;
-
-    Uint32 timeMulti = gTimer.getTime() - lastUpdate;
-    switch(state)
-    {
-        case FORWARD:
-            posX = posX + sin(angle*PI/180)*timeMulti*speed;
-            posY = posY - cos(angle*PI/180)*timeMulti*speed;
-            lastUpdate = gTimer.getTime();
-            break;
-
-        case BACKWARD:
-            posX = posX - sin(angle*PI/180)*timeMulti*speed;
-            posY = posY + cos(angle*PI/180)*timeMulti*speed;
-            lastUpdate = gTimer.getTime();
-            break;
-
-        case LEFT:
-            posX = posX - sin((angle+90)*PI/180)*timeMulti*speed;
-            posY = posY + cos((angle+90)*PI/180)*timeMulti*speed;
-            lastUpdate = gTimer.getTime();
-            break;
-
-        case RIGHT:
-            posX = posX - sin((angle-90)*PI/180)*timeMulti*speed;
-            posY = posY + cos((angle-90)*PI/180)*timeMulti*speed;
-            lastUpdate = gTimer.getTime();
-            break;
-
-        case FORWARD_LEFT:
-            posX = posX + sin((angle+45)*PI/180)*timeMulti*speed;
-            posY = posY - cos((angle+45)*PI/180)*timeMulti*speed;
-            lastUpdate = gTimer.getTime();
-            break;
-
-        case FORWARD_RIGHT:
-            posX = posX + sin((angle-45)*PI/180)*timeMulti*speed;
-            posY = posY - cos((angle-45)*PI/180)*timeMulti*speed;
-            lastUpdate = gTimer.getTime();
-            break;
-
-         case BACKWARD_LEFT:
-            posX = posX - sin((angle+45)*PI/180)*timeMulti*speed;
-            posY = posY + cos((angle+45)*PI/180)*timeMulti*speed;
-            lastUpdate = gTimer.getTime();
-            break;
-
-        case BACKWARD_RIGHT:
-            posX = posX - sin((angle-45)*PI/180)*timeMulti*speed;
-            posY = posY + cos((angle-45)*PI/180)*timeMulti*speed;
-            lastUpdate = gTimer.getTime();
-            break;
-
-        default:
-            lastUpdate = gTimer.getTime();
-            break;
-    }
-
-    if (posX < 0 || posX > SCREEN_WIDTH)
-    {
-        posX = prevPosX;
-    }
-    if (posY < 0 || posY > SCREEN_HEIGHT)
-    {
-        posY = prevPosY;
-    }
-
-    if (checkColisionWorld(gWorld[gPlayer.worldCoordX][gPlayer.worldCoordY]))
-    {
-        posX = prevPosX;
-        posY = prevPosY;
-    }
-
-}
-
-bool player::checkColisionWorld(terrainMap currMap)
+bool character::checkColisionWorld(terrainMap currMap)
 {
     bool collide = false;
 
@@ -837,6 +893,129 @@ bool player::checkColisionWorld(terrainMap currMap)
     }
 
     return collide;
+}
+
+void player::updatePos()
+{
+    angle = (atan2(posX - gMouseX, posY - gMouseY)*-180/PI);
+
+    prevPosX = posX; //TO DO: remove this
+    prevPosY = posY;
+
+    prevPosX = position.x;
+    prevPosY = position.y;
+
+    Uint32 timeMulti = gTimer.getTime() - lastUpdate;
+    switch(state)
+    {
+        case FORWARD:
+            posX = posX + sin(angle*PI/180)*timeMulti*speed;
+            posY = posY - cos(angle*PI/180)*timeMulti*speed;
+
+            position.x = position.x + sin(angle*PI/180)*timeMulti*speed;
+            position.y = position.y - cos(angle*PI/180)*timeMulti*speed;
+
+            lastUpdate = gTimer.getTime();
+            break;
+
+        case BACKWARD:
+            posX = posX - sin(angle*PI/180)*timeMulti*speed;
+            posY = posY + cos(angle*PI/180)*timeMulti*speed;
+
+            position.x = position.x - sin(angle*PI/180)*timeMulti*speed;
+            position.y = position.y + cos(angle*PI/180)*timeMulti*speed;
+
+            lastUpdate = gTimer.getTime();
+            break;
+
+        case LEFT:
+            posX = posX - sin((angle+90)*PI/180)*timeMulti*speed;
+            posY = posY + cos((angle+90)*PI/180)*timeMulti*speed;
+
+            position.x = position.x - sin((angle+90)*PI/180)*timeMulti*speed;
+            position.y = position.y + cos((angle+90)*PI/180)*timeMulti*speed;
+
+            lastUpdate = gTimer.getTime();
+            break;
+
+        case RIGHT:
+            posX = posX - sin((angle-90)*PI/180)*timeMulti*speed;
+            posY = posY + cos((angle-90)*PI/180)*timeMulti*speed;
+
+            position.x = position.x - sin((angle-90)*PI/180)*timeMulti*speed;
+            position.y = position.y + cos((angle-90)*PI/180)*timeMulti*speed;
+
+            lastUpdate = gTimer.getTime();
+            break;
+
+        case FORWARD_LEFT:
+            posX = posX + sin((angle+45)*PI/180)*timeMulti*speed;
+            posY = posY - cos((angle+45)*PI/180)*timeMulti*speed;
+
+            position.x = position.x + sin((angle+45)*PI/180)*timeMulti*speed;
+            position.y = position.y - cos((angle+45)*PI/180)*timeMulti*speed;
+
+            lastUpdate = gTimer.getTime();
+            break;
+
+        case FORWARD_RIGHT:
+            posX = posX + sin((angle-45)*PI/180)*timeMulti*speed;
+            posY = posY - cos((angle-45)*PI/180)*timeMulti*speed;
+
+            position.x = position.x + sin((angle-45)*PI/180)*timeMulti*speed;
+            position.y = position.y - cos((angle-45)*PI/180)*timeMulti*speed;
+
+            lastUpdate = gTimer.getTime();
+            break;
+
+         case BACKWARD_LEFT:
+            posX = posX - sin((angle+45)*PI/180)*timeMulti*speed;
+            posY = posY + cos((angle+45)*PI/180)*timeMulti*speed;
+
+            position.x = position.x - sin((angle+45)*PI/180)*timeMulti*speed;
+            position.y = position.y + cos((angle+45)*PI/180)*timeMulti*speed;
+
+            lastUpdate = gTimer.getTime();
+            break;
+
+        case BACKWARD_RIGHT:
+            posX = posX - sin((angle-45)*PI/180)*timeMulti*speed;
+            posY = posY + cos((angle-45)*PI/180)*timeMulti*speed;
+
+            position.x = position.x - sin((angle-45)*PI/180)*timeMulti*speed;
+            position.y = position.y + cos((angle-45)*PI/180)*timeMulti*speed;
+
+            lastUpdate = gTimer.getTime();
+            break;
+
+        default:
+            lastUpdate = gTimer.getTime();
+            break;
+    }
+
+    if (position.x < 0 || posX > SCREEN_WIDTH)
+    {
+        posX = prevPosX;
+
+        position.x = prevPosX;
+
+    }
+    if (position.y  < 0 || posY > SCREEN_HEIGHT)
+    {
+        posY = prevPosY;
+
+        position.y = prevPosY;
+    }
+
+    if (checkColisionWorld(gWorld[gPlayer.worldCoordX][gPlayer.worldCoordY]))
+    {
+        posX = prevPosX;
+        posY = prevPosY;
+
+        position.x = prevPosX;
+        position.y = prevPosY;
+    }
+
 }
 
 terrain::terrain()
@@ -1382,6 +1561,8 @@ void newGame()
 
 int main(int argc, char* argv[])
 {
+    point position(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
+
     //Start up SDL and create window
 	if( !init() )
 	{
@@ -1399,8 +1580,6 @@ int main(int argc, char* argv[])
         SDL_Event e;
 
         Uint32 drawTimer = SDL_GetTicks();
-
-        //std::cout << "DIRT zLayer = " << gTerrain[DIRT].zLayer << std::endl;
 
         while( !gQuit )
         {
@@ -1444,6 +1623,10 @@ int main(int argc, char* argv[])
                 SDL_RenderPresent( gRenderer );
 
                 drawTimer = SDL_GetTicks();
+            }
+            else
+            {
+                SDL_Delay( (1000/FRAME_RATE)- (SDL_GetTicks() - drawTimer));
             }
         }
     }
