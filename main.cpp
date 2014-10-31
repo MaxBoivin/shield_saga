@@ -10,7 +10,7 @@
 
 //Global Constant
 
-const float PI = 3.14159f;
+const float PI = 3.14159265f;
 
 const int SCREEN_WIDTH = 1280;
 const int SCREEN_HEIGHT = 480;
@@ -132,14 +132,14 @@ const std::string collisionTypeName[COLLISION_COUNT] =
 
 //some shape class to simply things
 
-class point
+class intPoint
 {
 
     public:
 
-        point();
+       intPoint();
 
-        point(int setX, int setY);
+       intPoint(int setX, int setY);
 
         int x;
 
@@ -149,11 +149,28 @@ class point
 
 };
 
+class floatPoint
+{
+
+    public:
+
+       floatPoint();
+
+       floatPoint(float setX, float setY);
+
+        float x;
+
+        float y;
+
+    private:
+
+};
+
 class polygon
 {
     public:
 
-        point position;
+       intPoint position;
 
         float rotation;
 
@@ -170,7 +187,7 @@ class triangle: public polygon
 
         triangle(int base, int side1, int side2);
 
-        point vertex[3];
+       intPoint vertex[3];
 
     private:
 };
@@ -216,7 +233,7 @@ class rectangle: public polygon
 
         rectangle(int base, int height);
 
-        point vertex[4];
+       intPoint vertex[4];
 
     private:
 };
@@ -231,7 +248,7 @@ class circle
 
         int radius;
 
-        point position;
+       intPoint position;
 
     private:
 
@@ -428,9 +445,9 @@ class character
         Uint32 stateTimer;
 
 		//Character position
-		point position;
+		floatPoint position;
 
-        point prevPosition;
+       floatPoint prevPosition;
 
         Uint32 lastUpdate;
 
@@ -453,7 +470,7 @@ class player: public character
 
         //Variables
 
-        point worldCoord;
+       intPoint worldCoord;
 
     private:
 
@@ -465,11 +482,10 @@ class player: public character
 bool gQuit = false;
 
 //Mouse coordinate
-int gMouseX = 0;
-int gMouseY = 0;
+intPoint gMouse = {0,0};
+
 //Prev mouse coordinate
-int gPrevMouseX = 0;
-int gPrevMouseY = 0;
+intPoint gPrevMouse = {0,0};
 
 timer gTimer;
 
@@ -519,13 +535,25 @@ void newGame();
 //Class function definition
 
 //Shape class
-point::point()
+intPoint::intPoint()
 {
     x = 0;
     y = 0;
 }
 
-point::point(int setX, int setY)
+intPoint::intPoint(int setX, int setY)
+{
+    x = setX;
+    y = setY;
+}
+
+floatPoint::floatPoint()
+{
+    x = 0;
+    y = 0;
+}
+
+floatPoint::floatPoint(float setX, float setY)
 {
     x = setX;
     y = setY;
@@ -681,7 +709,7 @@ void character::render(SDL_Renderer* renderer)
 {
     SDL_Point center {(stateAnim[weapon][state].frameCenterW), (stateAnim[weapon][state].frameCenterH)};
     SDL_Rect spriteQuad = (stateAnim[weapon][state].renderSprite(stateTimer));
-    SDL_Rect renderQuad = (stateAnim[weapon][state].renderQuad(position.x, position.y));
+    SDL_Rect renderQuad = (stateAnim[weapon][state].renderQuad((int)round(position.x), (int)round(position.y)));
 
     SDL_RenderCopyEx( renderer, spriteSheet, &spriteQuad, &renderQuad,  angle, &center, SDL_FLIP_NONE );
 }
@@ -696,7 +724,7 @@ void character::evaluateKeyInput(const Uint8* currentKeyStates)
         && !currentKeyStates[ SDL_SCANCODE_S ]
         && !currentKeyStates[ SDL_SCANCODE_A ]
         && !currentKeyStates[ SDL_SCANCODE_D ]
-        && evalDistance(gMouseX, gMouseY, position.x, position.y) > stateAnim[weapon][state].frameCenterH/2)
+        && evalDistance(gMouse.x, gMouse.y, position.x, position.y) > stateAnim[weapon][state].frameCenterH/2)
     {
         changeState(FORWARD);
     }
@@ -725,7 +753,7 @@ void character::evaluateKeyInput(const Uint8* currentKeyStates)
         && !currentKeyStates[ SDL_SCANCODE_S ]
         && currentKeyStates[ SDL_SCANCODE_A ]
         && !currentKeyStates[ SDL_SCANCODE_D ]
-        && evalDistance(gMouseX, gMouseY, position.x, position.y) > stateAnim[weapon][state].frameCenterH/2)
+        && evalDistance(gMouse.x, gMouse.y, position.x, position.y) > stateAnim[weapon][state].frameCenterH/2)
     {
         changeState(FORWARD_LEFT); //Need to be change for a diagonal
     }
@@ -733,7 +761,7 @@ void character::evaluateKeyInput(const Uint8* currentKeyStates)
         && !currentKeyStates[ SDL_SCANCODE_S ]
         && !currentKeyStates[ SDL_SCANCODE_A ]
         && currentKeyStates[ SDL_SCANCODE_D ]
-        && evalDistance(gMouseX, gMouseY, position.x, position.y) > stateAnim[weapon][state].frameCenterH/2)
+        && evalDistance(gMouse.x, gMouse.y, position.x, position.y) > stateAnim[weapon][state].frameCenterH/2)
     {
         changeState(FORWARD_RIGHT); //Need to be change for a diagonal
     }
@@ -775,6 +803,8 @@ bool character::changeState(characterState newState)
         stateTimer = gTimer.getTime();
         stateChanged = true;
         std::cout << "Player state changed to: " << characterStateName[state] << std::endl;
+
+        std::cout << "Distance from character to mouse: " << evalDistance(position.x, position.y, gMouse.x, gMouse.y) << " Angle: " << angle << std::endl;
     }
     return stateChanged;
 }
@@ -889,66 +919,78 @@ bool character::checkColisionWorld(terrainMap currMap)
 
 void player::updatePos()
 {
-    angle = (atan2(position.x - gMouseX, position.y - gMouseY)*-180/PI);
+    angle = (atan2(position.x - gMouse.x, position.y - gMouse.y)*-180/PI);
+
+    int hypotenuse = evalDistance(position.x, position.y, gMouse.x, gMouse.y);
 
     prevPosition.x = position.x;
     prevPosition.y = position.y;
 
     Uint32 timeMulti = gTimer.getTime() - lastUpdate;
+
+    /*if (evalDistance(position.x, position.y, gMouse.x, gMouse.y) > SCREEN_HEIGHT/4) //A test where a link the speed of the character to the distance the mouse is.
+    {
+        speed = 0.2;
+    }
+    else
+    {
+        speed = 0.1;
+    }*/
+
     switch(state)
     {
         case FORWARD:
-            position.x = position.x + sin(angle*PI/180)*timeMulti*speed;
-            position.y = position.y - cos(angle*PI/180)*timeMulti*speed;
+            position.x = position.x + sin((angle)*PI/180)*timeMulti*speed;
+            position.y = position.y + cos((angle+180)*PI/180)*timeMulti*speed;
 
             lastUpdate = gTimer.getTime();
             break;
 
         case BACKWARD:
-            position.x = position.x - sin(angle*PI/180)*timeMulti*speed;
-            position.y = position.y + cos(angle*PI/180)*timeMulti*speed;
+            position.x = position.x + sin((angle+180)*PI/180)*timeMulti*speed;
+            position.y = position.y + cos((angle+180+180)*PI/180)*timeMulti*speed;
 
             lastUpdate = gTimer.getTime();
             break;
 
         case LEFT:
-            position.x = position.x - sin((angle+90)*PI/180)*timeMulti*speed;
-            position.y = position.y + cos((angle+90)*PI/180)*timeMulti*speed;
+            position.x = position.x + sin((angle-90)*PI/180)*timeMulti*speed;
+            position.y = position.y + cos((angle+180-90)*PI/180)*timeMulti*speed;
 
             lastUpdate = gTimer.getTime();
             break;
 
         case RIGHT:
-            position.x = position.x - sin((angle-90)*PI/180)*timeMulti*speed;
-            position.y = position.y + cos((angle-90)*PI/180)*timeMulti*speed;
+            position.x = position.x + sin((angle+90)*PI/180)*timeMulti*speed;
+            position.y = position.y + cos((angle+180+90)*PI/180)*timeMulti*speed;
 
             lastUpdate = gTimer.getTime();
             break;
 
         case FORWARD_LEFT:
-            position.x = position.x + sin((angle+45)*PI/180)*timeMulti*speed;
-            position.y = position.y - cos((angle+45)*PI/180)*timeMulti*speed;
+            position.x = position.x + sin((angle-45)*PI/180)*timeMulti*speed;
+            position.y = position.y + cos((angle+180-45)*PI/180)*timeMulti*speed;
 
             lastUpdate = gTimer.getTime();
             break;
 
         case FORWARD_RIGHT:
-            position.x = position.x + sin((angle-45)*PI/180)*timeMulti*speed;
-            position.y = position.y - cos((angle-45)*PI/180)*timeMulti*speed;
+            position.x = position.x + sin((angle+45)*PI/180)*timeMulti*speed;
+            position.y = position.y + cos((angle+180+45)*PI/180)*timeMulti*speed;
 
             lastUpdate = gTimer.getTime();
             break;
 
          case BACKWARD_LEFT:
-            position.x = position.x - sin((angle+45)*PI/180)*timeMulti*speed;
-            position.y = position.y + cos((angle+45)*PI/180)*timeMulti*speed;
+            position.x = position.x + sin((angle+180-45)*PI/180)*timeMulti*speed;
+            position.y = position.y + cos((angle+180+180-45)*PI/180)*timeMulti*speed;
 
             lastUpdate = gTimer.getTime();
             break;
 
         case BACKWARD_RIGHT:
-            position.x = position.x - sin((angle-45)*PI/180)*timeMulti*speed;
-            position.y = position.y + cos((angle-45)*PI/180)*timeMulti*speed;
+            position.x = position.x + sin((angle+180+45)*PI/180)*timeMulti*speed;
+            position.y = position.y + cos((angle+180+180+45)*PI/180)*timeMulti*speed;
 
             lastUpdate = gTimer.getTime();
             break;
@@ -1381,21 +1423,21 @@ bool pause()
             }
             else if(e.type == SDL_MOUSEMOTION )
             {
-                SDL_GetMouseState( &gMouseX, &gMouseY );
+                SDL_GetMouseState( &gMouse.x, &gMouse.y );
             }
             else if (e.type == SDL_MOUSEBUTTONUP)
             {
-                if (gMouseX < 200 && gMouseX > 20 && gMouseY < 100 && gMouseY > 65)
+                if (gMouse.x < 200 && gMouse.x > 20 && gMouse.y < 100 && gMouse.y > 65)
                 {
                     resumeGame = true;
                     gTimer.resume();
                 }
-                else if (gMouseX < 200 && gMouseX > 20 && gMouseY < 135 && gMouseY > 100)
+                else if (gMouse.x < 200 && gMouse.x > 20 && gMouse.y < 135 && gMouse.y > 100)
                 {
                     newGame();
                     resumeGame = true;
                 }
-                else if (gMouseX < 200 && gMouseX > 20 && gMouseY < 275 && gMouseY > 240)
+                else if (gMouse.x < 200 && gMouse.x > 20 && gMouse.y < 275 && gMouse.y > 240)
                 {
                     gQuit = true;
                     resumeGame = true;
@@ -1432,7 +1474,7 @@ void menuDisplay()
 
     if (gPlayer.spriteSheet != NULL) //I need to find something to check if the game just launched
     {
-        if (gMouseX < 200 && gMouseX > 20 && gMouseY < 100 && gMouseY > 65)
+        if (gMouse.x < 200 && gMouse.x > 20 && gMouse.y < 100 && gMouse.y > 65)
         {
             renderText("Resume", gFontDashley, 50, 75, textHighlight, 36);
         }
@@ -1448,7 +1490,7 @@ void menuDisplay()
     }
     if (true) //This one is always available
     {
-        if (gMouseX < 200 && gMouseX > 20 && gMouseY < 135 && gMouseY > 100)
+        if (gMouse.x < 200 && gMouse.x > 20 && gMouse.y < 135 && gMouse.y > 100)
         {
             renderText("New Game", gFontDashley, 50, 110, textHighlight, 36);
         }
@@ -1459,7 +1501,7 @@ void menuDisplay()
     }
     if (true) //This one is always available
     {
-        if (gMouseX < 200 && gMouseX > 20 && gMouseY < 170 && gMouseY > 135)
+        if (gMouse.x < 200 && gMouse.x > 20 && gMouse.y < 170 && gMouse.y > 135)
         {
             renderText("Load Game", gFontDashley, 50, 145, textHighlight, 36);
         }
@@ -1470,7 +1512,7 @@ void menuDisplay()
     }
     if (gPlayer.spriteSheet != NULL) //I need to find something to check if the game just launch
     {
-        if (gMouseX < 200 && gMouseX > 20 && gMouseY < 205 && gMouseY > 170)
+        if (gMouse.x < 200 && gMouse.x > 20 && gMouse.y < 205 && gMouse.y > 170)
         {
             renderText("Save Game", gFontDashley, 50, 180, textHighlight, 36);
         }
@@ -1485,7 +1527,7 @@ void menuDisplay()
     }
     if (true) //This one is always available
     {
-        if (gMouseX < 200 && gMouseX > 20 && gMouseY < 240 && gMouseY > 205)
+        if (gMouse.x < 200 && gMouse.x > 20 && gMouse.y < 240 && gMouse.y > 205)
         {
             renderText("Settings", gFontDashley, 50, 215, textHighlight, 36);
         }
@@ -1496,7 +1538,7 @@ void menuDisplay()
     }
     if (true) //This one is always available
     {
-        if (gMouseX < 200 && gMouseX > 20 && gMouseY < 275 && gMouseY > 240)
+        if (gMouse.x < 200 && gMouse.x > 20 && gMouse.y < 275 && gMouse.y > 240)
         {
             renderText("Quit", gFontDashley, 50, 250, textHighlight, 36);
         }
@@ -1520,7 +1562,7 @@ void newGame()
 
 int main(int argc, char* argv[])
 {
-    point position(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
+   intPoint position(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
 
     //Start up SDL and create window
 	if( !init() )
@@ -1555,9 +1597,9 @@ int main(int argc, char* argv[])
                 }
                 else if(e.type == SDL_MOUSEMOTION )
                 {
-                    gPrevMouseX = gMouseX;
-                    gPrevMouseY = gMouseY;
-                    SDL_GetMouseState( &gMouseX, &gMouseY );
+                    gPrevMouse.x = gMouse.x;
+                    gPrevMouse.y = gMouse.y;
+                    SDL_GetMouseState( &gMouse.x, &gMouse.y );
                 }
                 else if( e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)
                 {
@@ -1577,6 +1619,11 @@ int main(int argc, char* argv[])
                 gPlayer.render(gRenderer);
 
                 gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y].render(6, 10, gRenderer);
+
+                SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
+                SDL_RenderDrawLine( gRenderer, gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y);
+
+                //std::cout << "Distance from character to mouse: " << evalDistance(gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y) << " Angle: " << gPlayer.angle << std::endl;
 
                 //Update screen
                 SDL_RenderPresent( gRenderer );
