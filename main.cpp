@@ -24,7 +24,7 @@ const int TILE_NUMBER_HEIGHT = ceil((float)SCREEN_HEIGHT/(float)MAP_TILE_HEIGHT)
 const int WORLD_WIDTH = 1;
 const int WORLD_HEIGHT = 1;
 
-const int FRAME_RATE = 60;
+const int FRAME_RATE = 1000;
 
 const std::string APPLICATION_NAME = "Shield Saga";
 
@@ -429,15 +429,8 @@ class character
 
 		//Character position
 		point position;
-        int posX;
-        int posY;
-
-        int worldCoordX;
-        int worldCoordY;
 
         point prevPosition;
-        int prevPosX;
-        int prevPosY;
 
         Uint32 lastUpdate;
 
@@ -457,6 +450,10 @@ class player: public character
         //Function
 
         void updatePos();
+
+        //Variables
+
+        point worldCoord;
 
     private:
 
@@ -628,12 +625,6 @@ void character::free()
 {
     position.x = SCREEN_WIDTH/2;
     position.y = SCREEN_HEIGHT/2;
-    posX = SCREEN_WIDTH/2;
-    posY = SCREEN_HEIGHT/2;
-    worldCoordX = 0;
-    worldCoordY = 0;
-    prevPosX = posX;
-    prevPosY = posY;
     angle = 0;
     speed = 0.1;
     lastUpdate = gTimer.getTime();
@@ -705,64 +696,64 @@ void character::evaluateKeyInput(const Uint8* currentKeyStates)
         && !currentKeyStates[ SDL_SCANCODE_S ]
         && !currentKeyStates[ SDL_SCANCODE_A ]
         && !currentKeyStates[ SDL_SCANCODE_D ]
-        && evalDistance(gMouseX, gMouseY, posX, posY) > stateAnim[weapon][state].frameCenterH/2)
+        && evalDistance(gMouseX, gMouseY, position.x, position.y) > stateAnim[weapon][state].frameCenterH/2)
     {
-        gPlayer.changeState(FORWARD);
+        changeState(FORWARD);
     }
     else if ( !currentKeyStates[ SDL_SCANCODE_W ]
         && currentKeyStates[ SDL_SCANCODE_S ]
         && !currentKeyStates[ SDL_SCANCODE_A ]
         && !currentKeyStates[ SDL_SCANCODE_D ])
     {
-        gPlayer.changeState(BACKWARD);
+        changeState(BACKWARD);
     }
     else if ( !currentKeyStates[ SDL_SCANCODE_W ]
         && !currentKeyStates[ SDL_SCANCODE_S ]
         && currentKeyStates[ SDL_SCANCODE_A ]
         && !currentKeyStates[ SDL_SCANCODE_D ])
     {
-        gPlayer.changeState(LEFT);
+        changeState(LEFT);
     }
     else if ( !currentKeyStates[ SDL_SCANCODE_W ]
         && !currentKeyStates[ SDL_SCANCODE_S ]
         && !currentKeyStates[ SDL_SCANCODE_A ]
         && currentKeyStates[ SDL_SCANCODE_D ])
     {
-        gPlayer.changeState(RIGHT);
+        changeState(RIGHT);
     }
     else if ( currentKeyStates[ SDL_SCANCODE_W ]
         && !currentKeyStates[ SDL_SCANCODE_S ]
         && currentKeyStates[ SDL_SCANCODE_A ]
         && !currentKeyStates[ SDL_SCANCODE_D ]
-        && evalDistance(gMouseX, gMouseY, posX, posY) > stateAnim[weapon][state].frameCenterH/2)
+        && evalDistance(gMouseX, gMouseY, position.x, position.y) > stateAnim[weapon][state].frameCenterH/2)
     {
-        gPlayer.changeState(FORWARD_LEFT); //Need to be change for a diagonal
+        changeState(FORWARD_LEFT); //Need to be change for a diagonal
     }
     else if ( currentKeyStates[ SDL_SCANCODE_W ]
         && !currentKeyStates[ SDL_SCANCODE_S ]
         && !currentKeyStates[ SDL_SCANCODE_A ]
         && currentKeyStates[ SDL_SCANCODE_D ]
-        && evalDistance(gMouseX, gMouseY, posX, posY) > stateAnim[weapon][state].frameCenterH/2)
+        && evalDistance(gMouseX, gMouseY, position.x, position.y) > stateAnim[weapon][state].frameCenterH/2)
     {
-        gPlayer.changeState(FORWARD_RIGHT); //Need to be change for a diagonal
+        changeState(FORWARD_RIGHT); //Need to be change for a diagonal
     }
     else if ( !currentKeyStates[ SDL_SCANCODE_W ]
         && currentKeyStates[ SDL_SCANCODE_S ]
         && currentKeyStates[ SDL_SCANCODE_A ]
         && !currentKeyStates[ SDL_SCANCODE_D ])
     {
-        gPlayer.changeState(BACKWARD_LEFT); //Need to be change for a diagonal
+        changeState(BACKWARD_LEFT); //Need to be change for a diagonal
     }
     else if ( !currentKeyStates[ SDL_SCANCODE_W ]
         && currentKeyStates[ SDL_SCANCODE_S ]
         && !currentKeyStates[ SDL_SCANCODE_A ]
         && currentKeyStates[ SDL_SCANCODE_D ])
     {
-        gPlayer.changeState(BACKWARD_RIGHT); //Need to be change for a diagonal
+        changeState(BACKWARD_RIGHT); //Need to be change for a diagonal
     }
     else
     {
-        gPlayer.changeState(IDLE);
+        changeState(IDLE);
     }
 
     /*if (currentKeyStates[ SDL_SCANCODE_LSHIFT] )
@@ -783,6 +774,7 @@ bool character::changeState(characterState newState)
         state = newState;
         stateTimer = gTimer.getTime();
         stateChanged = true;
+        std::cout << "Player state changed to: " << characterStateName[state] << std::endl;
     }
     return stateChanged;
 }
@@ -848,33 +840,33 @@ bool character::checkColisionWorld(terrainMap currMap)
                     int nearObjX;
                     int nearObjY;
 
-                    if (posX < objMinX)
+                    if (position.x < objMinX)
                     {
                         nearObjX = objMinX;
                     }
-                    else if (posX > objMaxX)
+                    else if (position.x > objMaxX)
                     {
                         nearObjX = objMaxX;
                     }
                     else
                     {
-                        nearObjX = posX;
+                        nearObjX = position.x;
                     }
 
-                    if (posY < objMinY)
+                    if (position.y < objMinY)
                     {
                         nearObjY = objMinY;
                     }
-                    else if (posY > objMaxY)
+                    else if (position.y > objMaxY)
                     {
                         nearObjY = objMaxY;
                     }
                     else
                     {
-                        nearObjY = posY;
+                        nearObjY = position.y;
                     }
 
-                    if (evalDistance(posX, posY, nearObjX, nearObjY) < charRadius)
+                    if (evalDistance(position.x, position.y, nearObjX, nearObjY) < charRadius)
                     {
                         collide = true;
                     }
@@ -883,7 +875,7 @@ bool character::checkColisionWorld(terrainMap currMap)
                 if (currMap.tileMap[j][i].collide == RADIAL)
                 {
                     int objRadius = (currMap.tileMap[j][i].spriteW + currMap.tileMap[j][i].spriteH)/4;
-                    if (evalDistance(posX, posY, objPosX, objPosY) < (charRadius + objRadius))
+                    if (evalDistance(position.x, position.y, objPosX, objPosY) < (charRadius + objRadius))
                     {
                         collide = true;
                     }
@@ -897,21 +889,15 @@ bool character::checkColisionWorld(terrainMap currMap)
 
 void player::updatePos()
 {
-    angle = (atan2(posX - gMouseX, posY - gMouseY)*-180/PI);
+    angle = (atan2(position.x - gMouseX, position.y - gMouseY)*-180/PI);
 
-    prevPosX = posX; //TO DO: remove this
-    prevPosY = posY;
-
-    prevPosX = position.x;
-    prevPosY = position.y;
+    prevPosition.x = position.x;
+    prevPosition.y = position.y;
 
     Uint32 timeMulti = gTimer.getTime() - lastUpdate;
     switch(state)
     {
         case FORWARD:
-            posX = posX + sin(angle*PI/180)*timeMulti*speed;
-            posY = posY - cos(angle*PI/180)*timeMulti*speed;
-
             position.x = position.x + sin(angle*PI/180)*timeMulti*speed;
             position.y = position.y - cos(angle*PI/180)*timeMulti*speed;
 
@@ -919,9 +905,6 @@ void player::updatePos()
             break;
 
         case BACKWARD:
-            posX = posX - sin(angle*PI/180)*timeMulti*speed;
-            posY = posY + cos(angle*PI/180)*timeMulti*speed;
-
             position.x = position.x - sin(angle*PI/180)*timeMulti*speed;
             position.y = position.y + cos(angle*PI/180)*timeMulti*speed;
 
@@ -929,9 +912,6 @@ void player::updatePos()
             break;
 
         case LEFT:
-            posX = posX - sin((angle+90)*PI/180)*timeMulti*speed;
-            posY = posY + cos((angle+90)*PI/180)*timeMulti*speed;
-
             position.x = position.x - sin((angle+90)*PI/180)*timeMulti*speed;
             position.y = position.y + cos((angle+90)*PI/180)*timeMulti*speed;
 
@@ -939,9 +919,6 @@ void player::updatePos()
             break;
 
         case RIGHT:
-            posX = posX - sin((angle-90)*PI/180)*timeMulti*speed;
-            posY = posY + cos((angle-90)*PI/180)*timeMulti*speed;
-
             position.x = position.x - sin((angle-90)*PI/180)*timeMulti*speed;
             position.y = position.y + cos((angle-90)*PI/180)*timeMulti*speed;
 
@@ -949,9 +926,6 @@ void player::updatePos()
             break;
 
         case FORWARD_LEFT:
-            posX = posX + sin((angle+45)*PI/180)*timeMulti*speed;
-            posY = posY - cos((angle+45)*PI/180)*timeMulti*speed;
-
             position.x = position.x + sin((angle+45)*PI/180)*timeMulti*speed;
             position.y = position.y - cos((angle+45)*PI/180)*timeMulti*speed;
 
@@ -959,9 +933,6 @@ void player::updatePos()
             break;
 
         case FORWARD_RIGHT:
-            posX = posX + sin((angle-45)*PI/180)*timeMulti*speed;
-            posY = posY - cos((angle-45)*PI/180)*timeMulti*speed;
-
             position.x = position.x + sin((angle-45)*PI/180)*timeMulti*speed;
             position.y = position.y - cos((angle-45)*PI/180)*timeMulti*speed;
 
@@ -969,9 +940,6 @@ void player::updatePos()
             break;
 
          case BACKWARD_LEFT:
-            posX = posX - sin((angle+45)*PI/180)*timeMulti*speed;
-            posY = posY + cos((angle+45)*PI/180)*timeMulti*speed;
-
             position.x = position.x - sin((angle+45)*PI/180)*timeMulti*speed;
             position.y = position.y + cos((angle+45)*PI/180)*timeMulti*speed;
 
@@ -979,9 +947,6 @@ void player::updatePos()
             break;
 
         case BACKWARD_RIGHT:
-            posX = posX - sin((angle-45)*PI/180)*timeMulti*speed;
-            posY = posY + cos((angle-45)*PI/180)*timeMulti*speed;
-
             position.x = position.x - sin((angle-45)*PI/180)*timeMulti*speed;
             position.y = position.y + cos((angle-45)*PI/180)*timeMulti*speed;
 
@@ -993,27 +958,20 @@ void player::updatePos()
             break;
     }
 
-    if (position.x < 0 || posX > SCREEN_WIDTH)
+    if (position.x < 0 || position.x > SCREEN_WIDTH)
     {
-        posX = prevPosX;
-
-        position.x = prevPosX;
+        position.x = prevPosition.x;
 
     }
-    if (position.y  < 0 || posY > SCREEN_HEIGHT)
+    if (position.y  < 0 || position.y > SCREEN_HEIGHT)
     {
-        posY = prevPosY;
-
-        position.y = prevPosY;
+        position.y = prevPosition.y;
     }
 
-    if (checkColisionWorld(gWorld[gPlayer.worldCoordX][gPlayer.worldCoordY]))
+    if (checkColisionWorld(gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y]))
     {
-        posX = prevPosX;
-        posY = prevPosY;
-
-        position.x = prevPosX;
-        position.y = prevPosY;
+        position.x = prevPosition.x;
+        position.y = prevPosition.y;
     }
 
 }
@@ -1555,6 +1513,7 @@ void newGame()
     gTimer.start();
     gPlayer.free();
     gPlayer.spriteSheet = loadTexture((CHARACTER_SPRITESHEET_PATH + ".png").c_str());
+    gPlayer.worldCoord = {0,0};
 }
 
 //Main function
@@ -1613,11 +1572,11 @@ int main(int argc, char* argv[])
                 //Draw stuff on the renderer
                 SDL_RenderClear( gRenderer );
 
-                gWorld[gPlayer.worldCoordX][gPlayer.worldCoordY].render(0, 4, gRenderer);
+                gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y].render(0, 4, gRenderer);
 
                 gPlayer.render(gRenderer);
 
-                gWorld[gPlayer.worldCoordX][gPlayer.worldCoordY].render(6, 10, gRenderer);
+                gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y].render(6, 10, gRenderer);
 
                 //Update screen
                 SDL_RenderPresent( gRenderer );
