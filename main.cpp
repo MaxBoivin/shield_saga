@@ -37,6 +37,21 @@ const std::string TERRAIN_SPRITESHEET_PATH = "ressource/terrain-sprite_sheet";
 const std::string DASHLEY_FONT_PATH = "ressource/Dashley.ttf";
 const int DASHLEY_FONT_POINT = 500;
 
+enum zPlane
+{
+    BACKGROUND,
+    MIDGROUND,
+    FOREGROUND,
+    Z_PLANE_COUNT
+};
+
+const std::string zPlaneName[Z_PLANE_COUNT]
+{
+    "BACKGROUND",
+    "MIDGROUND",
+    "FOREGROUND"
+};
+
 //Character state constants
 enum characterState
 {
@@ -98,7 +113,7 @@ enum terrainType
     DIRT,
     GRASS,
     TREE_TRUNK_SMALL,
-    BLANK_BOX_COLLIDER,
+    BOX_COLLIDER,
     BLANK,
     TERRAIN_COUNT //This one serve no purpose other than to have the number of STATE available
 };
@@ -109,8 +124,8 @@ const std::string terrainTypeName[COMBO_COUNT] =
     "DIRT",
     "GRASS",
     "TREE_TRUNK_SMALL",
-    "BLANK_BOX_COLLIDER",
-    "BLANK"
+    "BOX_COLLIDER",
+    "-"
 };
 
 enum collisionType
@@ -349,11 +364,13 @@ class terrainMap
         bool loadMap(int mapCoordX, int mapCoordY);
 
         //Rendering the terrain
-        void render(int zLayerBottom, int zLayerTop, SDL_Renderer* renderer);
+        void render(SDL_Renderer* renderer, zPlane plane, int zLayerBottom = 0, int zLayerTop = 9);
 
         //Class variables
 
-        terrain tileMap[TILE_NUMBER_WIDTH][TILE_NUMBER_HEIGHT];
+        intPoint mapSize;
+
+        terrain tileMap[TILE_NUMBER_WIDTH][TILE_NUMBER_HEIGHT][Z_PLANE_COUNT];
 
     private:
 
@@ -447,7 +464,9 @@ class character
 		//Character position
 		floatPoint position;
 
-       floatPoint prevPosition;
+        floatPoint prevPosition;
+
+        int zLayer;
 
         Uint32 lastUpdate;
 
@@ -653,6 +672,7 @@ void character::free()
 {
     position.x = SCREEN_WIDTH/2;
     position.y = SCREEN_HEIGHT/2;
+    zLayer = 5;
     angle = 0;
     speed = 0.1;
     lastUpdate = gTimer.getTime();
@@ -813,8 +833,6 @@ bool character::checkColisionWorld(terrainMap currMap)
 {
     bool collide = false;
 
-    bool colideArray[TILE_NUMBER_WIDTH][TILE_NUMBER_HEIGHT];
-
     //this block was to calculate box collision on the character.  I might go back to a box for the character.
     /*int charMinX = posX - stateAnim[weapon][state].frameCenterW;
     int charMaxX = posX - stateAnim[weapon][state].frameCenterW + stateAnim[weapon][state].frameW;
@@ -849,17 +867,17 @@ bool character::checkColisionWorld(terrainMap currMap)
     {
         for (int j =0; j < TILE_NUMBER_WIDTH; j++)
         {
-            if (currMap.tileMap[j][i].collide != NONE)
+            if (currMap.tileMap[j][i][MIDGROUND].collide != NONE)
             {
                 int objPosX = j * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2;
                 int objPosY = i * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2;
 
-                int objMinX = objPosX - currMap.tileMap[j][i].spriteCenterW;
-                int objMaxX = objPosX - currMap.tileMap[j][i].spriteCenterW + currMap.tileMap[j][i].spriteW;
-                int objMinY = objPosY - currMap.tileMap[j][i].spriteCenterH;
-                int objMaxY = objPosY - currMap.tileMap[j][i].spriteCenterH + currMap.tileMap[j][i].spriteH;
+                int objMinX = objPosX - currMap.tileMap[j][i][MIDGROUND].spriteCenterW;
+                int objMaxX = objPosX - currMap.tileMap[j][i][MIDGROUND].spriteCenterW + currMap.tileMap[j][i][MIDGROUND].spriteW;
+                int objMinY = objPosY - currMap.tileMap[j][i][MIDGROUND].spriteCenterH;
+                int objMaxY = objPosY - currMap.tileMap[j][i][MIDGROUND].spriteCenterH + currMap.tileMap[j][i][MIDGROUND].spriteH;
 
-                if (currMap.tileMap[j][i].collide == BOX)
+                if (currMap.tileMap[j][i][MIDGROUND].collide == BOX)
                 {
                     //this is an other block to calculate box collision on the character.
                     /*if (!(charMaxX < objMinX || charMinX > objMaxX || charMaxY < objMinY || charMinY > objMaxY))
@@ -902,9 +920,9 @@ bool character::checkColisionWorld(terrainMap currMap)
                     }
                 }
 
-                if (currMap.tileMap[j][i].collide == RADIAL)
+                if (currMap.tileMap[j][i][MIDGROUND].collide == RADIAL)
                 {
-                    int objRadius = (currMap.tileMap[j][i].spriteW + currMap.tileMap[j][i].spriteH)/4;
+                    int objRadius = (currMap.tileMap[j][i][MIDGROUND].spriteW + currMap.tileMap[j][i][MIDGROUND].spriteH)/4;
                     if (evalDistance(position.x, position.y, objPosX, objPosY) < (charRadius + objRadius))
                     {
                         collide = true;
@@ -1020,7 +1038,7 @@ void player::updatePos()
 
 terrain::terrain()
 {
-    terrainName = DIRT;
+    terrainName = BLANK;
     spriteW = 58;
     spriteH = 58;
     spriteCenterW = 29;
@@ -1032,13 +1050,13 @@ terrain::terrain()
     resPiercing = -1;
     resCuting = -1;
     resSmashing = -1;
-    decayTo = DIRT;
+    decayTo = BLANK;
     zLayer = 0;
 }
 
 terrain::~terrain()
 {
-    terrainName = DIRT;
+    terrainName = BLANK;
     spriteW = 58;
     spriteH = 58;
     spriteCenterW = 29;
@@ -1050,7 +1068,7 @@ terrain::~terrain()
     resPiercing = -1;
     resCuting = -1;
     resSmashing = -1;
-    decayTo = DIRT;
+    decayTo = BLANK;
     zLayer = 0;
 }
 
@@ -1065,11 +1083,14 @@ void terrain::render(SDL_Renderer* renderer, int posX, int posY)
 
 terrainMap::terrainMap()
 {
-    for (int i = 0; i < TILE_NUMBER_HEIGHT; i++)
+    for (int h = 0;  h < Z_PLANE_COUNT; h++)
     {
-        for (int j = 0; j < TILE_NUMBER_WIDTH; j++)
+        for (int i = 0; i < TILE_NUMBER_HEIGHT; i++)
         {
-            tileMap[i][j] = gTerrain[DIRT];
+            for (int j = 0; j < TILE_NUMBER_WIDTH; j++)
+            {
+                tileMap[j][i][h] = gTerrain[BLANK];
+            }
         }
     }
 }
@@ -1084,28 +1105,40 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
     if  (mapFile.is_open())
     {
-        for (int i = 0; i < TILE_NUMBER_HEIGHT; i++)
+        mapFile >> mapSize.x >> mapSize.y;
+
+        for (int h = 0; h < Z_PLANE_COUNT; h++)
         {
-            for (int j = 0; j  < TILE_NUMBER_WIDTH; j++)
+            std::string plane;
+            mapFile >> plane;
+
+            if (plane == zPlaneName[h])
             {
-                if (!mapFile.eof())
+                for (int i = 0; i < TILE_NUMBER_HEIGHT; i++)
                 {
-                    std::string tileName;
-                    mapFile >> tileName;
-                    for (int k = 0; k < TERRAIN_COUNT; k++)
+                    for (int j = 0; j  < TILE_NUMBER_WIDTH; j++)
                     {
-                        if (tileName == terrainTypeName[gTerrain[k].terrainName])
+                        if (!mapFile.eof())
                         {
-                            tileMap[j][i] = gTerrain[k];
+                            std::string tileName;
+                            mapFile >> tileName;
+                            for (int k = 0; k < TERRAIN_COUNT; k++)
+                            {
+                                if (tileName == terrainTypeName[gTerrain[k].terrainName])
+                                {
+                                    tileMap[j][i][h] = gTerrain[k];
+                                }
+                            }
+                        }
+                        else
+                        {
+                            return success;
                         }
                     }
                 }
-                else
-                {
-                    return success;
-                }
             }
         }
+
         success = true;
         mapFile.close();
     }
@@ -1117,17 +1150,18 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
     return success;
 }
 
-void terrainMap::render(int zLayerBottom, int zLayerTop, SDL_Renderer* renderer)
+void terrainMap::render(SDL_Renderer* renderer, zPlane plane, int zLayerBottom, int zLayerTop)
 {
+
     for (int i = zLayerBottom; i <= zLayerTop; i++)
     {
         for (int j = 0; j < TILE_NUMBER_HEIGHT; j++)
         {
             for (int k = 0; k < TILE_NUMBER_WIDTH; k++)
             {
-                if (tileMap[k][j].zLayer == i)
+                if (tileMap[k][j][plane].zLayer == i)
                 {
-                    tileMap[k][j].render(renderer, (k*MAP_TILE_WIDTH+MAP_TILE_WIDTH/2),(j*MAP_TILE_HEIGHT+MAP_TILE_HEIGHT/2));
+                    tileMap[k][j][plane].render(renderer, (k*MAP_TILE_WIDTH+MAP_TILE_WIDTH/2),(j*MAP_TILE_HEIGHT+MAP_TILE_HEIGHT/2));
                 }
             }
         }
@@ -1614,13 +1648,18 @@ int main(int argc, char* argv[])
                 //Draw stuff on the renderer
                 SDL_RenderClear( gRenderer );
 
-                gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y].render(0, 4, gRenderer);
+                gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y].render(gRenderer, BACKGROUND);
+
+                gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y].render(gRenderer, MIDGROUND, 0, gPlayer.zLayer);
 
                 gPlayer.render(gRenderer);
 
-                gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y].render(6, 10, gRenderer);
+                gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y].render(gRenderer, MIDGROUND, gPlayer.zLayer, 9);
+
+                gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y].render(gRenderer, FOREGROUND);
 
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
+
                 SDL_RenderDrawLine( gRenderer, gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y);
 
                 //std::cout << "Distance from character to mouse: " << evalDistance(gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y) << " Angle: " << gPlayer.angle << std::endl;
