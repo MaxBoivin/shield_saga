@@ -1107,6 +1107,16 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
     {
         mapFile >> mapSize.x >> mapSize.y;
 
+        if  (mapSize.x > TILE_NUMBER_WIDTH)
+        {
+            mapSize.x = TILE_NUMBER_WIDTH;
+        }
+
+        if  (mapSize.y > TILE_NUMBER_HEIGHT)
+        {
+            mapSize.y = TILE_NUMBER_HEIGHT;
+        }
+
         for (int h = 0; h < Z_PLANE_COUNT; h++)
         {
             std::string plane;
@@ -1114,9 +1124,9 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
             if (plane == zPlaneName[h])
             {
-                for (int i = 0; i < TILE_NUMBER_HEIGHT; i++)
+                for (int i = 0; i < mapSize.y; i++)
                 {
-                    for (int j = 0; j  < TILE_NUMBER_WIDTH; j++)
+                    for (int j = 0; j  < mapSize.x; j++)
                     {
                         if (!mapFile.eof())
                         {
