@@ -185,7 +185,7 @@ class polygon
 {
     public:
 
-       intPoint position;
+        floatPoint position;
 
         float rotation;
 
@@ -200,42 +200,14 @@ class triangle: public polygon
 
         triangle();
 
-        triangle(int base, int side1, int side2);
+        triangle(floatPoint position, float base, float side1, float side2);
 
-       intPoint vertex[3];
+        //Function to create different type of triangle.
+        void triangleIso(float base, float height);
+        void triangleRect(float base, float height);
+        void triangleEqui(float base);
 
-    private:
-};
-
-class triangleEqui: public triangle
-{
-    public:
-
-        triangleEqui();
-
-        triangleEqui(int base);
-
-    private:
-};
-
-class triangleRect: public triangle
-{
-    public:
-
-        triangleRect();
-
-        triangleRect(int base, int height);
-
-    private:
-};
-
-class triangleIso: public triangle
-{
-    public:
-
-        triangleIso();
-
-        triangleIso(int base, int height);
+        floatPoint vertex[3];
 
     private:
 };
@@ -246,9 +218,10 @@ class rectangle: public polygon
 
         rectangle();
 
-        rectangle(int base, int height);
+        rectangle(floatPoint position, float base, float height);
+        void box(float base);
 
-       intPoint vertex[4];
+        floatPoint vertex[4];
 
     private:
 };
@@ -259,11 +232,11 @@ class circle
 
         circle();
 
-        circle(int radius);
+        circle(float radius);
 
-        int radius;
+        float radius;
 
-       intPoint position;
+        floatPoint position;
 
     private:
 
@@ -535,7 +508,18 @@ bool init();
 
 void close();
 
+//Different function to evaluate distance between different type of point.
 float evalDistance(float x1, float y1, float x2, float y2);
+float evalDistance(floatPoint point1, floatPoint point2);
+float evalDistance(intPoint point1, intPoint point2);
+float evalDistance(floatPoint point1, intPoint point2);
+float evalDistance(intPoint point1, floatPoint point2);
+
+bool pointOnVectorCheck(floatPoint point, floatPoint vecStart, floatPoint vecEnd);
+
+int threePointOrientation(floatPoint point1, floatPoint point2, floatPoint point3);
+
+bool vectorCrossCheck(floatPoint vec1Start, floatPoint vec1End, floatPoint vec2Start, floatPoint vec2End);
 
 SDL_Texture* loadTexture(std::string path);
 
@@ -744,7 +728,7 @@ void character::evaluateKeyInput(const Uint8* currentKeyStates)
         && !currentKeyStates[ SDL_SCANCODE_S ]
         && !currentKeyStates[ SDL_SCANCODE_A ]
         && !currentKeyStates[ SDL_SCANCODE_D ]
-        && evalDistance(gMouse.x, gMouse.y, position.x, position.y) > stateAnim[weapon][state].frameCenterH/2)
+        && evalDistance(gMouse, position) > stateAnim[weapon][state].frameCenterH/2)
     {
         changeState(FORWARD);
     }
@@ -773,7 +757,7 @@ void character::evaluateKeyInput(const Uint8* currentKeyStates)
         && !currentKeyStates[ SDL_SCANCODE_S ]
         && currentKeyStates[ SDL_SCANCODE_A ]
         && !currentKeyStates[ SDL_SCANCODE_D ]
-        && evalDistance(gMouse.x, gMouse.y, position.x, position.y) > stateAnim[weapon][state].frameCenterH/2)
+        && evalDistance(gMouse, position) > stateAnim[weapon][state].frameCenterH/2)
     {
         changeState(FORWARD_LEFT); //Need to be change for a diagonal
     }
@@ -781,7 +765,7 @@ void character::evaluateKeyInput(const Uint8* currentKeyStates)
         && !currentKeyStates[ SDL_SCANCODE_S ]
         && !currentKeyStates[ SDL_SCANCODE_A ]
         && currentKeyStates[ SDL_SCANCODE_D ]
-        && evalDistance(gMouse.x, gMouse.y, position.x, position.y) > stateAnim[weapon][state].frameCenterH/2)
+        && evalDistance(gMouse, position) > stateAnim[weapon][state].frameCenterH/2)
     {
         changeState(FORWARD_RIGHT); //Need to be change for a diagonal
     }
@@ -824,7 +808,7 @@ bool character::changeState(characterState newState)
         stateChanged = true;
         std::cout << "Player state changed to: " << characterStateName[state] << std::endl;
 
-        std::cout << "Distance from character to mouse: " << evalDistance(position.x, position.y, gMouse.x, gMouse.y) << " Angle: " << angle << std::endl;
+        std::cout << "Distance from character to mouse: " << evalDistance(position, gMouse) << " Angle: " << angle << std::endl;
     }
     return stateChanged;
 }
@@ -869,13 +853,14 @@ bool character::checkColisionWorld(terrainMap currMap)
         {
             if (currMap.tileMap[j][i][MIDGROUND].collide != NONE)
             {
-                int objPosX = j * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2;
-                int objPosY = i * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2;
+                intPoint objPos;
+                objPos.x = j * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2;
+                objPos.y = i * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2;
 
-                int objMinX = objPosX - currMap.tileMap[j][i][MIDGROUND].spriteCenterW;
-                int objMaxX = objPosX - currMap.tileMap[j][i][MIDGROUND].spriteCenterW + currMap.tileMap[j][i][MIDGROUND].spriteW;
-                int objMinY = objPosY - currMap.tileMap[j][i][MIDGROUND].spriteCenterH;
-                int objMaxY = objPosY - currMap.tileMap[j][i][MIDGROUND].spriteCenterH + currMap.tileMap[j][i][MIDGROUND].spriteH;
+                int objMinX = objPos.x - currMap.tileMap[j][i][MIDGROUND].spriteCenterW;
+                int objMaxX = objPos.x - currMap.tileMap[j][i][MIDGROUND].spriteCenterW + currMap.tileMap[j][i][MIDGROUND].spriteW;
+                int objMinY = objPos.y - currMap.tileMap[j][i][MIDGROUND].spriteCenterH;
+                int objMaxY = objPos.y - currMap.tileMap[j][i][MIDGROUND].spriteCenterH + currMap.tileMap[j][i][MIDGROUND].spriteH;
 
                 if (currMap.tileMap[j][i][MIDGROUND].collide == BOX)
                 {
@@ -885,36 +870,35 @@ bool character::checkColisionWorld(terrainMap currMap)
                         collide = true;
                     }*/
 
-                    int nearObjX;
-                    int nearObjY;
+                    floatPoint nearObj;
 
                     if (position.x < objMinX)
                     {
-                        nearObjX = objMinX;
+                        nearObj.x = objMinX;
                     }
                     else if (position.x > objMaxX)
                     {
-                        nearObjX = objMaxX;
+                        nearObj.x = objMaxX;
                     }
                     else
                     {
-                        nearObjX = position.x;
+                        nearObj.x = position.x;
                     }
 
                     if (position.y < objMinY)
                     {
-                        nearObjY = objMinY;
+                        nearObj.y = objMinY;
                     }
                     else if (position.y > objMaxY)
                     {
-                        nearObjY = objMaxY;
+                        nearObj.y = objMaxY;
                     }
                     else
                     {
-                        nearObjY = position.y;
+                        nearObj.y = position.y;
                     }
 
-                    if (evalDistance(position.x, position.y, nearObjX, nearObjY) < charRadius)
+                    if (evalDistance(position, nearObj) < charRadius)
                     {
                         collide = true;
                     }
@@ -923,7 +907,7 @@ bool character::checkColisionWorld(terrainMap currMap)
                 if (currMap.tileMap[j][i][MIDGROUND].collide == RADIAL)
                 {
                     int objRadius = (currMap.tileMap[j][i][MIDGROUND].spriteW + currMap.tileMap[j][i][MIDGROUND].spriteH)/4;
-                    if (evalDistance(position.x, position.y, objPosX, objPosY) < (charRadius + objRadius))
+                    if (evalDistance(position, objPos) < (charRadius + objRadius))
                     {
                         collide = true;
                     }
@@ -938,8 +922,6 @@ bool character::checkColisionWorld(terrainMap currMap)
 void player::updatePos()
 {
     angle = (atan2(position.x - gMouse.x, position.y - gMouse.y)*-180/PI);
-
-    int hypotenuse = evalDistance(position.x, position.y, gMouse.x, gMouse.y);
 
     prevPosition.x = position.x;
     prevPosition.y = position.y;
@@ -1407,6 +1389,91 @@ bool loadWorld()
 float evalDistance(float x1, float y1, float x2, float y2)
 {
     return (sqrt(pow(x1-x2, 2)+pow(y1-y2, 2)));
+}
+
+float evalDistance(floatPoint point1, floatPoint point2)
+{
+    return (sqrt(pow(point1.x-point2.x, 2)+pow(point1.y-point2.y, 2)));
+}
+
+float evalDistance(intPoint point1, intPoint point2)
+{
+    return (sqrt(pow(point1.x-point2.x, 2)+pow(point1.y-point2.y, 2)));
+}
+
+float evalDistance(floatPoint point1, intPoint point2)
+{
+    return (sqrt(pow(point1.x-point2.x, 2)+pow(point1.y-point2.y, 2)));
+}
+
+float evalDistance(intPoint point1, floatPoint point2)
+{
+    return (sqrt(pow(point1.x-point2.x, 2)+pow(point1.y-point2.y, 2)));
+}
+
+bool pointOnVectorCheck(floatPoint point, floatPoint vecStart, floatPoint vecEnd)
+{
+    bool pointIsOnVector = false;
+
+    if (point.x <= fmax(vecStart.x, vecEnd.x) && point.x >= fmin(vecStart.x, vecEnd.x) &&
+        point.y <= fmax(vecStart.y, vecEnd.y) && point.y >= fmin(vecStart.y, vecEnd.y))
+    {
+        pointIsOnVector = true;
+    }
+
+    return pointIsOnVector;
+}
+
+int threePointOrientation(floatPoint point1, floatPoint point2, floatPoint point3)
+{
+    int orientation = 0;
+    if ((point2.y - point1.y) * (point3.x - point2.x) - (point2.x - point1.x) * (point3.y - point2.y) > 0)
+    {
+        orientation = 1;
+    }
+    else if ((point2.y - point1.y) * (point3.x - point2.x) - (point2.x - point1.x) * (point3.y - point2.y) < 0)
+    {
+        orientation = -1;
+    }
+
+    return orientation;
+}
+
+bool vectorCrossCheck(floatPoint vec1Start, floatPoint vec1End, floatPoint vec2Start, floatPoint vec2End)
+{
+    bool crossing = false;
+
+    int orientation1 = threePointOrientation(vec1Start, vec1End, vec2Start);
+    int orientation2 = threePointOrientation(vec1Start, vec1End, vec2End);
+    int orientation3 = threePointOrientation(vec2Start, vec2End, vec1Start);
+    int orientation4 = threePointOrientation(vec2Start, vec2End, vec1End);
+
+    if (orientation1 != orientation2 && orientation3 != orientation4)
+    {
+        crossing = true;
+    }
+
+    if (orientation1 == 0 && pointOnVectorCheck(vec2Start, vec1Start, vec1End))
+    {
+        crossing = true;
+    }
+
+    if (orientation2 == 0 && pointOnVectorCheck(vec2End, vec1Start, vec1End))
+    {
+        crossing = true;
+    }
+
+    if (orientation3 == 0 && pointOnVectorCheck(vec1Start, vec2Start, vec2End))
+    {
+        crossing = true;
+    }
+
+    if (orientation4 == 0 && pointOnVectorCheck(vec1End, vec2Start, vec2End))
+    {
+        crossing = true;
+    }
+
+    return crossing;
 }
 
 bool renderText(std::string text, TTF_Font* font, int posX, int posY, SDL_Color textColor, int pointSize)
