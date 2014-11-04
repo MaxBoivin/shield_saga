@@ -1695,7 +1695,7 @@ int main(int argc, char* argv[])
 
         while( !gQuit )
         {
-            SDL_SetRenderDrawColor( gRenderer, 0xEE, 0xEE, 0xEE, 0x00 );
+            SDL_SetRenderDrawColor( gRenderer, 0x00, 0x00, 0x00, 0x00 );
             SDL_RenderClear( gRenderer );
 
             //Handle events on queue
