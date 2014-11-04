@@ -6,6 +6,7 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
+#include<vector>
 //#include <tinyxml2.h>
 
 //Global Constant
@@ -114,6 +115,7 @@ enum terrainType
     GRASS,
     TREE_TRUNK_SMALL,
     BOX_COLLIDER,
+    BLANK_GATE,
     BLANK,
     TERRAIN_COUNT //This one serve no purpose other than to have the number of STATE available
 };
@@ -124,6 +126,7 @@ const std::string terrainTypeName[COMBO_COUNT] =
     "DIRT",
     "GRASS",
     "TREE_TRUNK_SMALL",
+    "BLANK_GATE",
     "BOX_COLLIDER",
     "-"
 };
@@ -133,6 +136,7 @@ enum collisionType
     NONE,
     RADIAL,
     BOX,
+    GATE,
     COLLISION_COUNT
 };
 
@@ -140,7 +144,8 @@ const std::string collisionTypeName[COLLISION_COUNT] =
 {
     "NONE",
     "RADIAL",
-    "BOX"
+    "BOX",
+    "GATE"
 };
 
 //class declaration
@@ -185,6 +190,8 @@ class polygon
 {
     public:
 
+        polygon();
+
         floatPoint position;
 
         float rotation;
@@ -194,7 +201,7 @@ class polygon
     private:
 };
 
-class triangle: public polygon
+/*class triangle: public polygon
 {
     public:
 
@@ -210,20 +217,35 @@ class triangle: public polygon
         floatPoint vertex[3];
 
     private:
-};
+};*/
 
-class rectangle: public polygon
+class rect: public polygon
 {
     public:
 
-        rectangle();
+        rect();
 
-        rectangle(floatPoint position, float base, float height);
+        rect(floatPoint initPosition, floatPoint initDimension);
+
+        floatPoint dimension;
+
+    private:
+
+};
+
+/*class quad: public polygon
+{
+    public:
+
+        quad();
+
+        quad(floatPoint position, float base, float height);
         void box(float base);
 
         floatPoint vertex[4];
 
     private:
+
 };
 
 class circle
@@ -232,7 +254,7 @@ class circle
 
         circle();
 
-        circle(float radius);
+        circle(floatPoint position, float radius);
 
         float radius;
 
@@ -240,7 +262,7 @@ class circle
 
     private:
 
-};
+};*/
 
 //Game specific classes
 
@@ -274,6 +296,24 @@ class timer
 
 		//The time the app has been paused
 		Uint32 pausedTime;
+};
+
+class mapGate //This is to manage the gate in the terrainMap.  I wish I could used something that already existed but everything would take too much memory for nothing.
+{
+    public:
+
+        mapGate();
+
+        mapGate( intPoint initPosition);
+
+        intPoint position;
+
+        intPoint targetWorldCoord;
+
+        intPoint targetPosCoord;
+
+    private:
+
 };
 
 class terrain
@@ -345,6 +385,10 @@ class terrainMap
 
         terrain tileMap[TILE_NUMBER_WIDTH][TILE_NUMBER_HEIGHT][Z_PLANE_COUNT];
 
+        std::vector <intPoint> vTerrainCollide;
+
+        std::vector <mapGate> vGate;
+
     private:
 
 };
@@ -411,11 +455,9 @@ class character
 
         void loadAnim();
 
-        void evaluateKeyInput(const Uint8* currentKeyStates);
-
         bool changeState(characterState newState);
 
-        bool checkColisionWorld(terrainMap currMap);
+        bool checkCollisionTerrain(std::vector <intPoint> collider);
 
 		//Class variables
 
@@ -458,11 +500,19 @@ class player: public character
 
         //Function
 
+        player();
+
+        bool checkCollisionTerrain(std::vector <intPoint> collider);
+
+        void evaluateKeyInput(const Uint8* currentKeyStates);
+
         void updatePos();
 
-        //Variables
+        bool justGated;
 
-       intPoint worldCoord;
+        intPoint curWorld;
+
+        //Variables
 
     private:
 
@@ -488,6 +538,7 @@ player gPlayer;
 terrain gTerrain[TERRAIN_COUNT];
 
 terrainMap gWorld[WORLD_WIDTH][WORLD_HEIGHT];
+intPoint gCurWorldCoord = {0,0};
 
 //The texture that is going all the sprite of the terrains
 SDL_Texture* gTerrainSprite = NULL;
@@ -560,6 +611,31 @@ floatPoint::floatPoint(float setX, float setY)
 {
     x = setX;
     y = setY;
+}
+
+polygon::polygon()
+{
+    position = {0,0};
+    rotation = 0;
+    sideNumber = 0;
+}
+
+rect::rect()
+{
+    position = {0,0};
+    rotation = 0;
+    sideNumber = 4;
+
+    dimension = {1,1};
+}
+
+rect::rect(floatPoint initPosition, floatPoint initDimension)
+{
+    position = initPosition;
+    rotation = 0;
+    sideNumber = 4;
+
+    dimension = initDimension;
 }
 
 timer::timer()
@@ -718,7 +794,194 @@ void character::render(SDL_Renderer* renderer)
     SDL_RenderCopyEx( renderer, spriteSheet, &spriteQuad, &renderQuad,  angle, &center, SDL_FLIP_NONE );
 }
 
-void character::evaluateKeyInput(const Uint8* currentKeyStates)
+bool character::changeState(characterState newState)
+{
+    bool stateChanged = false;
+    if (state != newState)
+    {
+        state = newState;
+        stateTimer = gTimer.getTime();
+        stateChanged = true;
+        std::cout << "Player state changed to: " << characterStateName[state] << std::endl;
+
+        std::cout << "Distance from character to mouse: " << evalDistance(position, gMouse) << " Angle: " << angle << std::endl;
+    }
+    return stateChanged;
+}
+
+bool character::checkCollisionTerrain(std::vector <intPoint> collider)
+{
+    bool collide = false;
+
+    //Here I'm defining some arbitrary collision for the character.  I'll need to change that on something like collision per weapon or per animation.
+
+    float charRadius = fmin(MAP_TILE_HEIGHT, MAP_TILE_WIDTH)/2 - 2; //I added an arbitrary -2 just to give it some tolerance.
+
+    for (int i = 0; i < collider.size(); i++)
+    {
+        floatPoint currColliderPos = {(collider[i].x * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2), (collider[i].y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2)};
+
+        collisionType currCollide = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].tileMap[collider[i].x][collider[i].y][MIDGROUND].collide;
+
+        if (currCollide == BOX && currCollide == GATE)
+        {
+            floatPoint objMin = {currColliderPos.x - MAP_TILE_WIDTH / 2, currColliderPos.y - MAP_TILE_HEIGHT / 2};
+            floatPoint objMax = {currColliderPos.x + MAP_TILE_WIDTH / 2, currColliderPos.y + MAP_TILE_HEIGHT / 2};
+
+            floatPoint nearObj;
+
+            if (position.x < objMin.x)
+            {
+                nearObj.x = objMin.x;
+            }
+            else if (position.x > objMax.x)
+            {
+                nearObj.x = objMax.x;
+            }
+            else
+            {
+                nearObj.x = position.x;
+            }
+
+            if (position.y < objMin.y)
+            {
+                nearObj.y = objMin.y;
+            }
+            else if (position.y > objMax.y)
+            {
+                nearObj.y = objMax.y;
+            }
+            else
+            {
+                nearObj.y = position.y;
+            }
+
+            if (evalDistance(position, nearObj) < charRadius)
+            {
+                collide = true;
+
+                std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
+            }
+        }
+        else if (currCollide == RADIAL)
+        {
+            if (evalDistance(position, currColliderPos) < (charRadius + fmin(MAP_TILE_HEIGHT, MAP_TILE_WIDTH)/2))
+            {
+                collide = true;
+
+                std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
+            }
+        }
+
+    }
+
+    return collide;
+}
+
+bool player::checkCollisionTerrain(std::vector <intPoint> collider)
+{
+    bool collide = false;
+
+    bool collideWithGate = false;
+
+    //Here I'm defining some arbitrary collision for the character.  I'll need to change that on something like collision per weapon or per animation.
+
+    float charRadius = fmin(MAP_TILE_HEIGHT, MAP_TILE_WIDTH)/2 - 2; //I added an arbitrary -2 just to give it some tolerance.
+
+    for (int i = 0; i < collider.size(); i++)
+    {
+        floatPoint currColliderPos = {(collider[i].x * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2), (collider[i].y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2)};
+
+        collisionType currCollide = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].tileMap[collider[i].x][collider[i].y][MIDGROUND].collide;
+
+        if (currCollide == GATE)
+        {
+            if (evalDistance(position, currColliderPos) < charRadius)
+            {
+                if (!justGated)
+                {
+                    for (int j = 0; j < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate.size(); j++)
+                    {
+                        if ( (collider[i].x == gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].position.x) && (collider[i].y == gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].position.y))
+                        {
+                            gCurWorldCoord = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetWorldCoord;
+                            position.x = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetPosCoord.x * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2;
+                            position.y = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetPosCoord.y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2;
+
+                            std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
+                        }
+                    }
+                    justGated = true;
+                }
+                collideWithGate = true;
+            }
+        }
+        else if (currCollide == BOX)
+        {
+            floatPoint objMin = {currColliderPos.x - MAP_TILE_WIDTH / 2, currColliderPos.y - MAP_TILE_HEIGHT / 2};
+            floatPoint objMax = {currColliderPos.x + MAP_TILE_WIDTH / 2, currColliderPos.y + MAP_TILE_HEIGHT / 2};
+
+            floatPoint nearObj;
+
+            if (position.x < objMin.x)
+            {
+                nearObj.x = objMin.x;
+            }
+            else if (position.x > objMax.x)
+            {
+                nearObj.x = objMax.x;
+            }
+            else
+            {
+                nearObj.x = position.x;
+            }
+
+            if (position.y < objMin.y)
+            {
+                nearObj.y = objMin.y;
+            }
+            else if (position.y > objMax.y)
+            {
+                nearObj.y = objMax.y;
+            }
+            else
+            {
+                nearObj.y = position.y;
+            }
+
+            if (evalDistance(position, nearObj) < charRadius)
+            {
+                collide = true;
+
+                std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
+            }
+        }
+        else if (currCollide == RADIAL)
+        {
+            if (evalDistance(position, currColliderPos) < (charRadius + fmin(MAP_TILE_HEIGHT, MAP_TILE_WIDTH)/2))
+            {
+                collide = true;
+
+                std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
+            }
+        }
+
+    }
+
+    if (collideWithGate == false)
+    {
+        justGated = false;
+    }
+
+    return collide;
+}
+
+player::player()
+{
+    justGated = false;
+}
+
+void player::evaluateKeyInput(const Uint8* currentKeyStates)
 {
     if( currentKeyStates[ SDL_SCANCODE_ESCAPE ] )
     {
@@ -796,127 +1059,6 @@ void character::evaluateKeyInput(const Uint8* currentKeyStates)
     {
         gPlayer.speed = 0.1;
     }*/
-}
-
-bool character::changeState(characterState newState)
-{
-    bool stateChanged = false;
-    if (state != newState)
-    {
-        state = newState;
-        stateTimer = gTimer.getTime();
-        stateChanged = true;
-        std::cout << "Player state changed to: " << characterStateName[state] << std::endl;
-
-        std::cout << "Distance from character to mouse: " << evalDistance(position, gMouse) << " Angle: " << angle << std::endl;
-    }
-    return stateChanged;
-}
-
-bool character::checkColisionWorld(terrainMap currMap)
-{
-    bool collide = false;
-
-    //this block was to calculate box collision on the character.  I might go back to a box for the character.
-    /*int charMinX = posX - stateAnim[weapon][state].frameCenterW;
-    int charMaxX = posX - stateAnim[weapon][state].frameCenterW + stateAnim[weapon][state].frameW;
-    int charMinY = posY - stateAnim[weapon][state].frameCenterH - 10;
-    int charMaxY = posY - stateAnim[weapon][state].frameCenterH + stateAnim[weapon][state].frameH;*/
-
-    int charRadius;
-    if (stateAnim[weapon][state].frameW < stateAnim[weapon][state].frameH)
-    {
-        if (stateAnim[weapon][state].frameCenterW > stateAnim[weapon][state].frameW/2)
-        {
-            charRadius = stateAnim[weapon][state].frameW - stateAnim[weapon][state].frameCenterW;
-        }
-        else
-        {
-            charRadius = stateAnim[weapon][state].frameCenterW;
-        }
-    }
-    else
-    {
-        if (stateAnim[weapon][state].frameCenterH > stateAnim[weapon][state].frameH/2)
-        {
-            charRadius = stateAnim[weapon][state].frameH - stateAnim[weapon][state].frameCenterH;
-        }
-        else
-        {
-            charRadius = stateAnim[weapon][state].frameCenterH;
-        }
-    }
-
-    for (int i = 0; i < TILE_NUMBER_HEIGHT; i++)
-    {
-        for (int j =0; j < TILE_NUMBER_WIDTH; j++)
-        {
-            if (currMap.tileMap[j][i][MIDGROUND].collide != NONE)
-            {
-                intPoint objPos;
-                objPos.x = j * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2;
-                objPos.y = i * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2;
-
-                int objMinX = objPos.x - currMap.tileMap[j][i][MIDGROUND].spriteCenterW;
-                int objMaxX = objPos.x - currMap.tileMap[j][i][MIDGROUND].spriteCenterW + currMap.tileMap[j][i][MIDGROUND].spriteW;
-                int objMinY = objPos.y - currMap.tileMap[j][i][MIDGROUND].spriteCenterH;
-                int objMaxY = objPos.y - currMap.tileMap[j][i][MIDGROUND].spriteCenterH + currMap.tileMap[j][i][MIDGROUND].spriteH;
-
-                if (currMap.tileMap[j][i][MIDGROUND].collide == BOX)
-                {
-                    //this is an other block to calculate box collision on the character.
-                    /*if (!(charMaxX < objMinX || charMinX > objMaxX || charMaxY < objMinY || charMinY > objMaxY))
-                    {
-                        collide = true;
-                    }*/
-
-                    floatPoint nearObj;
-
-                    if (position.x < objMinX)
-                    {
-                        nearObj.x = objMinX;
-                    }
-                    else if (position.x > objMaxX)
-                    {
-                        nearObj.x = objMaxX;
-                    }
-                    else
-                    {
-                        nearObj.x = position.x;
-                    }
-
-                    if (position.y < objMinY)
-                    {
-                        nearObj.y = objMinY;
-                    }
-                    else if (position.y > objMaxY)
-                    {
-                        nearObj.y = objMaxY;
-                    }
-                    else
-                    {
-                        nearObj.y = position.y;
-                    }
-
-                    if (evalDistance(position, nearObj) < charRadius)
-                    {
-                        collide = true;
-                    }
-                }
-
-                if (currMap.tileMap[j][i][MIDGROUND].collide == RADIAL)
-                {
-                    int objRadius = (currMap.tileMap[j][i][MIDGROUND].spriteW + currMap.tileMap[j][i][MIDGROUND].spriteH)/4;
-                    if (evalDistance(position, objPos) < (charRadius + objRadius))
-                    {
-                        collide = true;
-                    }
-                }
-            }
-        }
-    }
-
-    return collide;
 }
 
 void player::updatePos()
@@ -1010,12 +1152,26 @@ void player::updatePos()
         position.y = prevPosition.y;
     }
 
-    if (checkColisionWorld(gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y]))
+    if (checkCollisionTerrain(gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vTerrainCollide))
     {
         position.x = prevPosition.x;
         position.y = prevPosition.y;
     }
 
+}
+
+mapGate::mapGate()
+{
+    position = {0,0};
+
+    targetWorldCoord = {0,0};
+
+    targetPosCoord = {0,0};
+}
+
+mapGate::mapGate( intPoint initPosition)
+{
+    position = initPosition;
 }
 
 terrain::terrain()
@@ -1087,6 +1243,10 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
     if  (mapFile.is_open())
     {
+        std::string tempRead;
+
+        int gateNumber = 0;
+
         mapFile >> mapSize.x >> mapSize.y;
 
         if  (mapSize.x > TILE_NUMBER_WIDTH)
@@ -1101,10 +1261,9 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
         for (int h = 0; h < Z_PLANE_COUNT; h++)
         {
-            std::string plane;
-            mapFile >> plane;
+            mapFile >> tempRead;
 
-            if (plane == zPlaneName[h])
+            if (tempRead == zPlaneName[h])
             {
                 for (int i = 0; i < mapSize.y; i++)
                 {
@@ -1112,13 +1271,21 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                     {
                         if (!mapFile.eof())
                         {
-                            std::string tileName;
-                            mapFile >> tileName;
+                            mapFile >> tempRead;
                             for (int k = 0; k < TERRAIN_COUNT; k++)
                             {
-                                if (tileName == terrainTypeName[gTerrain[k].terrainName])
+                                if (tempRead == terrainTypeName[gTerrain[k].terrainName])
                                 {
                                     tileMap[j][i][h] = gTerrain[k];
+                                    if (gTerrain[k].collide != NONE)
+                                    {
+                                        vTerrainCollide.push_back((intPoint){j,i});
+                                    }
+                                    if (gTerrain[k].collide == GATE)
+                                    {
+                                        gateNumber++;
+                                        vGate.push_back((mapGate)((intPoint){j,i}));
+                                    }
                                 }
                             }
                         }
@@ -1128,6 +1295,16 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                         }
                     }
                 }
+            }
+        }
+
+        mapFile >> tempRead;
+
+        if ( tempRead == "GATE")
+        {
+            for (int i = 0; i < gateNumber; i++)
+            {
+                mapFile >> vGate[i].targetWorldCoord.x >> vGate[i].targetWorldCoord.y >> vGate[i].targetPosCoord.x >> vGate[i].targetPosCoord.y;
             }
         }
 
@@ -1666,7 +1843,6 @@ void newGame()
     gTimer.start();
     gPlayer.free();
     gPlayer.spriteSheet = loadTexture((CHARACTER_SPRITESHEET_PATH + ".png").c_str());
-    gPlayer.worldCoord = {0,0};
 }
 
 //Main function
@@ -1725,15 +1901,15 @@ int main(int argc, char* argv[])
                 //Draw stuff on the renderer
                 SDL_RenderClear( gRenderer );
 
-                gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y].render(gRenderer, BACKGROUND);
+                gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, BACKGROUND);
 
-                gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y].render(gRenderer, MIDGROUND, 0, gPlayer.zLayer);
+                gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, MIDGROUND, 0, gPlayer.zLayer);
 
                 gPlayer.render(gRenderer);
 
-                gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y].render(gRenderer, MIDGROUND, gPlayer.zLayer, 9);
+                gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, MIDGROUND, gPlayer.zLayer, 9);
 
-                gWorld[gPlayer.worldCoord.x][gPlayer.worldCoord.y].render(gRenderer, FOREGROUND);
+                gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, FOREGROUND);
 
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
 
