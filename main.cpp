@@ -23,7 +23,7 @@ const int TILE_NUMBER_WIDTH = ceil((float)SCREEN_WIDTH/(float)MAP_TILE_WIDTH);
 const int TILE_NUMBER_HEIGHT = ceil((float)SCREEN_HEIGHT/(float)MAP_TILE_HEIGHT);
 
 const int WORLD_WIDTH = 1;
-const int WORLD_HEIGHT = 1;
+const int WORLD_HEIGHT = 2;
 
 const int FRAME_RATE = 1000;
 
@@ -802,9 +802,10 @@ bool character::changeState(characterState newState)
         state = newState;
         stateTimer = gTimer.getTime();
         stateChanged = true;
-        std::cout << "Player state changed to: " << characterStateName[state] << std::endl;
 
-        std::cout << "Distance from character to mouse: " << evalDistance(position, gMouse) << " Angle: " << angle << std::endl;
+        //std::cout << "Player state changed to: " << characterStateName[state] << std::endl;
+
+        //std::cout << "Distance from character to mouse: " << evalDistance(position, gMouse) << " Angle: " << angle << std::endl;
     }
     return stateChanged;
 }
@@ -904,11 +905,17 @@ bool player::checkCollisionTerrain(std::vector <intPoint> collider)
                     {
                         if ( (collider[i].x == gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].position.x) && (collider[i].y == gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].position.y))
                         {
-                            gCurWorldCoord = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetWorldCoord;
+                            /*std::cout << "CurWorld: " << gCurWorldCoord.x  << ", " << gCurWorldCoord.y << std::endl;
+                            std::cout << "Gate " << j << " Size: " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate.size()
+                                << ": Pos: " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].position.x << ", " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].position.y
+                                << " TargetWorld: " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetWorldCoord.x << ", " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetWorldCoord.y
+                                << " TargetPos: " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetPosCoord.x << ", " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetPosCoord.y << std::endl;*/
                             position.x = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetPosCoord.x * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2;
                             position.y = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetPosCoord.y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2;
-
-                            std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
+                            gCurWorldCoord = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetWorldCoord;
+                            //std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
+                            //std::cout << "CurWorld: " << gCurWorldCoord.x  << ", " << gCurWorldCoord.y << std::endl;
+                            break;
                         }
                     }
                     justGated = true;
@@ -953,7 +960,7 @@ bool player::checkCollisionTerrain(std::vector <intPoint> collider)
             {
                 collide = true;
 
-                std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
+                //std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
             }
         }
         else if (currCollide == RADIAL)
@@ -962,7 +969,7 @@ bool player::checkCollisionTerrain(std::vector <intPoint> collider)
             {
                 collide = true;
 
-                std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
+                //std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
             }
         }
 
@@ -1237,7 +1244,7 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 {
     bool success = false;
 
-    std::string path = "ressource/map/0-0.map";// + std::to_string(mapCoordX) + "-" + std::to_string(mapCoordY) + ".map";
+    std::string path = "ressource/map/" + std::to_string(mapCoordX) + "-" + std::to_string(mapCoordY) + ".map";//"ressource/map/0-0.map";
 
     std::ifstream mapFile(path.c_str());
 
@@ -1305,6 +1312,7 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
             for (int i = 0; i < gateNumber; i++)
             {
                 mapFile >> vGate[i].targetWorldCoord.x >> vGate[i].targetWorldCoord.y >> vGate[i].targetPosCoord.x >> vGate[i].targetPosCoord.y;
+                //std::cout << "Gate " << i << ": Pos: " << vGate[i].position.x << ", " << vGate[i].position.y << " TargetWorld: " << vGate[i].targetWorldCoord.x << ", " << vGate[i].targetWorldCoord.y << " TargetPos: " << vGate[i].targetPosCoord.x << ", " << vGate[i].targetPosCoord.y << std::endl;
             }
         }
 
@@ -1313,7 +1321,7 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
     }
     else
     {
-        //std::cout << "Could not find map file " << std::to_string(mapCoordX) << "-" << std::to_string(mapCoordY) << ".map" << std::endl;
+        std::cout << "Could not find map file " << std::to_string(mapCoordX) << "-" << std::to_string(mapCoordY) << ".map" << std::endl;
     }
 
     return success;
@@ -1913,7 +1921,7 @@ int main(int argc, char* argv[])
 
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
 
-                SDL_RenderDrawLine( gRenderer, gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y);
+                //SDL_RenderDrawLine( gRenderer, gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y);
 
                 //std::cout << "Distance from character to mouse: " << evalDistance(gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y) << " Angle: " << gPlayer.angle << std::endl;
 
