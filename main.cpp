@@ -148,6 +148,15 @@ const std::string collisionTypeName[COLLISION_COUNT] =
     "GATE"
 };
 
+enum collisionAxis
+{
+    NO_AXIS_COLLIDING,
+    XY,
+    X,
+    Y,
+    COLLISION_AXIS_COUNT
+};
+
 //class declaration
 
 //some shape class to simply things
@@ -192,13 +201,27 @@ class polygon
 
         polygon();
 
+        polygon(floatPoint initPosition);
+
+        void addVertex(floatPoint newVertexRelPosition);
+
+        bool delVertex(int vertexNumber);
+
+        bool setVertexRelPos(int vertexNumber, floatPoint vertexNewRelativePosition);
+
+        floatPoint getVertexRelPos(int vertexNumber);
+
+        floatPoint getVertexAbsPos(int vertexNumber);
+
+        int getSideNumber();
+
         floatPoint position;
 
         float rotation;
 
-        int sideNumber;
-
     private:
+
+        std::vector <floatPoint> vertex;
 };
 
 /*class triangle: public polygon
@@ -217,7 +240,7 @@ class polygon
         floatPoint vertex[3];
 
     private:
-};*/
+};
 
 class rect: public polygon
 {
@@ -387,6 +410,8 @@ class terrainMap
 
         std::vector <intPoint> vTerrainCollide;
 
+        std::vector <polygon> vCollisionPolygon;
+
         std::vector <mapGate> vGate;
 
     private:
@@ -459,6 +484,8 @@ class character
 
         bool checkCollisionTerrain(std::vector <intPoint> collider);
 
+        //std::string checkCollisionTerrain(std::vector <intPoint> collider);
+
 		//Class variables
 
 		//The sprite sheet for the character
@@ -502,7 +529,7 @@ class player: public character
 
         player();
 
-        bool checkCollisionTerrain(std::vector <intPoint> collider);
+        collisionAxis checkCollisionTerrain(std::vector <intPoint> collider);
 
         void evaluateKeyInput(const Uint8* currentKeyStates);
 
@@ -617,10 +644,83 @@ polygon::polygon()
 {
     position = {0,0};
     rotation = 0;
-    sideNumber = 0;
 }
 
-rect::rect()
+polygon::polygon(floatPoint initPosition)
+{
+    position = initPosition;
+    rotation = 0;
+}
+
+int polygon::getSideNumber()
+{
+    return vertex.size();
+}
+
+void polygon::addVertex(floatPoint newVertexRelPosisition)
+{
+    vertex.push_back(newVertexRelPosisition);
+}
+
+bool polygon::delVertex(int vertexNumber)
+{
+    if(vertexNumber <= vertex.size() && vertexNumber >= 0)
+    {
+        vertex.erase(vertex.begin()+vertexNumber);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool polygon::setVertexRelPos(int vertexNumber, floatPoint vertexNewRelativePosition)
+{
+    if(vertexNumber <= vertex.size() && vertexNumber >= 0)
+    {
+        vertex[vertexNumber] = vertexNewRelativePosition;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+floatPoint polygon::getVertexRelPos(int vertexNumber)
+{
+    if(vertexNumber <= vertex.size() && vertexNumber >= 0)
+    {
+        return vertex[vertexNumber];
+    }
+    else
+    {
+        return (floatPoint){0,0};
+    }
+}
+
+floatPoint polygon::getVertexAbsPos(int vertexNumber)
+{
+    floatPoint absolutePosition = position;
+
+    if(vertexNumber <= vertex.size() && vertexNumber >= 0)
+    {
+        float originalAngle = atan2(vertex[vertexNumber].y,vertex[vertexNumber].x)*180/PI;
+        float hypothenuse = evalDistance((floatPoint){0,0}, vertex[vertexNumber]);
+
+        absolutePosition.x = position.x + cos((originalAngle+rotation)*PI/180) *  hypothenuse;
+        absolutePosition.y = position.y + sin((originalAngle+rotation)*PI/180) *  hypothenuse;
+
+        return absolutePosition;
+    }
+    else
+    {
+        return position;
+    }
+}
+
+/*rect::rect()
 {
     position = {0,0};
     rotation = 0;
@@ -636,7 +736,7 @@ rect::rect(floatPoint initPosition, floatPoint initDimension)
     sideNumber = 4;
 
     dimension = initDimension;
-}
+}*/
 
 timer::timer()
 {
@@ -879,15 +979,23 @@ bool character::checkCollisionTerrain(std::vector <intPoint> collider)
     return collide;
 }
 
-bool player::checkCollisionTerrain(std::vector <intPoint> collider)
+collisionAxis player::checkCollisionTerrain(std::vector <intPoint> collider)
 {
-    bool collide = false;
+    collisionAxis collide = NO_AXIS_COLLIDING;
 
     bool collideWithGate = false;
 
     //Here I'm defining some arbitrary collision for the character.  I'll need to change that on something like collision per weapon or per animation.
 
     float charRadius = fmin(MAP_TILE_HEIGHT, MAP_TILE_WIDTH)/2 - 2; //I added an arbitrary -2 just to give it some tolerance.
+
+    //Temporary hack
+    polygon charCollisionHack = position;
+    charCollisionHack.addVertex((floatPoint){4-24, 25-43});
+    charCollisionHack.addVertex((floatPoint){4-24, 0-43});
+    charCollisionHack.addVertex((floatPoint){46-24, 53-43});
+    charCollisionHack.addVertex((floatPoint){4-24, 53-43});
+    charCollisionHack.rotation = angle;
 
     for (int i = 0; i < collider.size(); i++)
     {
@@ -905,16 +1013,9 @@ bool player::checkCollisionTerrain(std::vector <intPoint> collider)
                     {
                         if ( (collider[i].x == gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].position.x) && (collider[i].y == gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].position.y))
                         {
-                            /*std::cout << "CurWorld: " << gCurWorldCoord.x  << ", " << gCurWorldCoord.y << std::endl;
-                            std::cout << "Gate " << j << " Size: " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate.size()
-                                << ": Pos: " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].position.x << ", " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].position.y
-                                << " TargetWorld: " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetWorldCoord.x << ", " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetWorldCoord.y
-                                << " TargetPos: " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetPosCoord.x << ", " << gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetPosCoord.y << std::endl;*/
                             position.x = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetPosCoord.x * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2;
                             position.y = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetPosCoord.y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2;
                             gCurWorldCoord = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetWorldCoord;
-                            //std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
-                            //std::cout << "CurWorld: " << gCurWorldCoord.x  << ", " << gCurWorldCoord.y << std::endl;
                             break;
                         }
                     }
@@ -925,49 +1026,109 @@ bool player::checkCollisionTerrain(std::vector <intPoint> collider)
         }
         else if (currCollide == BOX)
         {
-            floatPoint objMin = {currColliderPos.x - MAP_TILE_WIDTH / 2, currColliderPos.y - MAP_TILE_HEIGHT / 2};
-            floatPoint objMax = {currColliderPos.x + MAP_TILE_WIDTH / 2, currColliderPos.y + MAP_TILE_HEIGHT / 2};
+            //floatPoint objMin = {currColliderPos.x - MAP_TILE_WIDTH / 2, currColliderPos.y - MAP_TILE_HEIGHT / 2};
+            //floatPoint objMax = {currColliderPos.x + MAP_TILE_WIDTH / 2, currColliderPos.y + MAP_TILE_HEIGHT / 2};
 
-            floatPoint nearObj;
+            polygon currCollider = (floatPoint){(collider[i].x * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2), (collider[i].y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2)};
 
-            if (position.x < objMin.x)
+            currCollider.addVertex((floatPoint){-1 * MAP_TILE_WIDTH / 2, -1 * MAP_TILE_HEIGHT / 2});
+            currCollider.addVertex((floatPoint){MAP_TILE_WIDTH / 2, -1 * MAP_TILE_HEIGHT / 2});
+            currCollider.addVertex((floatPoint){MAP_TILE_WIDTH / 2, MAP_TILE_HEIGHT / 2});
+            currCollider.addVertex((floatPoint){-1 * MAP_TILE_WIDTH / 2, MAP_TILE_HEIGHT / 2});
+
+            for (int j = 0; j < charCollisionHack.getSideNumber(); j++)
             {
-                nearObj.x = objMin.x;
-            }
-            else if (position.x > objMax.x)
-            {
-                nearObj.x = objMax.x;
-            }
-            else
-            {
-                nearObj.x = position.x;
+                if((vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(0),currCollider.getVertexAbsPos(1)) ||
+                    vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(2),currCollider.getVertexAbsPos(3))) &&
+                   (vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(0),currCollider.getVertexAbsPos(2)) ||
+                    vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(1),currCollider.getVertexAbsPos(3))))
+                {
+                    collide = XY;
+                    std::cout << "Collision detected: XY " << collide << std::endl;
+                }
+                else if (vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(0),currCollider.getVertexAbsPos(1)) ||
+                        vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(2),currCollider.getVertexAbsPos(3)))
+                {
+                    if (collide == NO_AXIS_COLLIDING)
+                    {
+                        collide = X;
+                        std::cout << "Collision detected: X " << collide << std::endl;
+                    }
+                    else if (collide == Y)
+                    {
+                        collide = XY;
+                        std::cout << "Collision detected: XY " << collide << std::endl;
+                    }
+                }
+                else if (vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(0),currCollider.getVertexAbsPos(2)) ||
+                    vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(1),currCollider.getVertexAbsPos(3)))
+                {
+                    if (collide == NO_AXIS_COLLIDING)
+                    {
+                        collide = Y;
+                        std::cout << "Collision detected: Y " << collide << std::endl;
+                    }
+                    else if (collide == X)
+                    {
+                        collide = XY;
+                        std::cout << "Collision detected: XY " << collide << std::endl;
+                    }
+                }
             }
 
-            if (position.y < objMin.y)
+            /*if ( ( vectorCrossCheck(position,(floatPoint){position.x + charRadius, position.y - charRadius}, (floatPoint){objMin.x, objMin.y}, (floatPoint){objMax.x, objMin.y}) ||
+                vectorCrossCheck(position,(floatPoint){position.x + charRadius, position.y + charRadius}, (floatPoint){objMin.x, objMin.y}, (floatPoint){objMax.x, objMin.y}) ||
+                vectorCrossCheck(position,(floatPoint){position.x - charRadius, position.y - charRadius}, (floatPoint){objMin.x, objMax.y}, (floatPoint){objMax.x, objMax.y}) ||
+                vectorCrossCheck(position,(floatPoint){position.x - charRadius, position.y + charRadius}, (floatPoint){objMin.x, objMax.y}, (floatPoint){objMax.x, objMax.y}) ) &&
+                ( vectorCrossCheck(position,(floatPoint){position.x + charRadius, position.y - charRadius}, (floatPoint){objMin.x, objMin.y}, (floatPoint){objMin.x, objMax.y}) ||
+                vectorCrossCheck(position,(floatPoint){position.x + charRadius, position.y + charRadius}, (floatPoint){objMin.x, objMin.y}, (floatPoint){objMin.x, objMax.y}) ||
+                vectorCrossCheck(position,(floatPoint){position.x - charRadius, position.y - charRadius}, (floatPoint){objMax.x, objMin.y}, (floatPoint){objMax.x, objMax.y}) ||
+                vectorCrossCheck(position,(floatPoint){position.x - charRadius, position.y + charRadius}, (floatPoint){objMax.x, objMin.y}, (floatPoint){objMax.x, objMax.y}) ) /*||
+                ((evalDistance(position, (floatPoint){objMin.x, objMin.y}) < charRadius)||
+                (evalDistance(position, (floatPoint){objMin.x, objMax.y}) < charRadius)||
+                (evalDistance(position, (floatPoint){objMax.x, objMin.y}) < charRadius)||
+                (evalDistance(position, (floatPoint){objMax.x, objMax.y}) < charRadius))*//*)
             {
-                nearObj.y = objMin.y;
+                collide = XY;
+                std::cout << "Collision detected: " << collide << std::endl;
             }
-            else if (position.y > objMax.y)
+            else if ( vectorCrossCheck(position,(floatPoint){position.x + charRadius, position.y}, (floatPoint){objMin.x, objMin.y}, (floatPoint){objMin.x, objMax.y}) ||
+                vectorCrossCheck(position,(floatPoint){position.x - charRadius, position.y}, (floatPoint){objMax.x, objMin.y}, (floatPoint){objMax.x, objMax.y}) )
             {
-                nearObj.y = objMax.y;
-            }
-            else
-            {
-                nearObj.y = position.y;
-            }
+                if (collide == NO_AXIS_COLLIDING)
+                {
+                    collide = X;
+                    std::cout << "Collision detected: " << collide << std::endl;
+                }
+                else if (collide == Y)
+                {
+                    collide = XY;
+                    std::cout << "Collision detected: " << collide << std::endl;
+                }
 
-            if (evalDistance(position, nearObj) < charRadius)
-            {
-                collide = true;
-
-                //std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
             }
+            else if ( vectorCrossCheck(position,(floatPoint){position.x, position.y + charRadius}, (floatPoint){objMin.x, objMin.y}, (floatPoint){objMax.x, objMin.y}) ||
+                vectorCrossCheck(position,(floatPoint){position.x, position.y - charRadius}, (floatPoint){objMin.x, objMax.y}, (floatPoint){objMax.x, objMax.y}) )
+            {
+                if (collide == NO_AXIS_COLLIDING)
+                {
+                    collide = Y;
+                    std::cout << "Collision detected: " << collide << std::endl;
+                }
+                else if (collide == X)
+                {
+                    collide = XY;
+                    std::cout << "Collision detected: " << collide << std::endl;
+                }
+            }*/
         }
         else if (currCollide == RADIAL)
         {
             if (evalDistance(position, currColliderPos) < (charRadius + fmin(MAP_TILE_HEIGHT, MAP_TILE_WIDTH)/2))
             {
-                collide = true;
+                collide = XY;
+
+                std::cout << "Collision detected: " << collide << std::endl;
 
                 //std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
             }
@@ -1159,10 +1320,20 @@ void player::updatePos()
         position.y = prevPosition.y;
     }
 
-    if (checkCollisionTerrain(gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vTerrainCollide))
+    switch(checkCollisionTerrain(gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vTerrainCollide))
     {
-        position.x = prevPosition.x;
-        position.y = prevPosition.y;
+        case XY:
+            position.x = prevPosition.x;
+            position.y = prevPosition.y;
+            break;
+
+        case X:
+            position.x = prevPosition.x;
+            break;
+
+        case Y:
+            position.y = prevPosition.y;
+            break;
     }
 
 }
@@ -1244,7 +1415,7 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 {
     bool success = false;
 
-    std::string path = "ressource/map/" + std::to_string(mapCoordX) + "-" + std::to_string(mapCoordY) + ".map";//"ressource/map/0-0.map";
+    std::string path = "ressource/map/" + std::to_string(mapCoordX) + "-" + std::to_string(mapCoordY) + ".map";
 
     std::ifstream mapFile(path.c_str());
 
@@ -1253,6 +1424,8 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
         std::string tempRead;
 
         int gateNumber = 0;
+
+        collisionType collisionMap[TILE_NUMBER_WIDTH][TILE_NUMBER_HEIGHT];
 
         mapFile >> mapSize.x >> mapSize.y;
 
@@ -1287,6 +1460,10 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                     if (gTerrain[k].collide != NONE)
                                     {
                                         vTerrainCollide.push_back((intPoint){j,i});
+                                        if (gTerrain[k].collide == BOX)
+                                        {
+                                            collisionMap[j][i] = BOX;
+                                        }
                                     }
                                     if (gTerrain[k].collide == GATE)
                                     {
@@ -1309,6 +1486,7 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
         if ( tempRead == "GATE")
         {
+            vGate.clear();
             for (int i = 0; i < gateNumber; i++)
             {
                 mapFile >> vGate[i].targetWorldCoord.x >> vGate[i].targetWorldCoord.y >> vGate[i].targetPosCoord.x >> vGate[i].targetPosCoord.y;
@@ -1318,6 +1496,94 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
         success = true;
         mapFile.close();
+
+        //Creating a vector of polygon of collision
+
+        for (int i = 0; i < mapSize.y; i++)
+        {
+            for (int j = 0; j < mapSize.x; j++)
+            {
+                std::cout << "Looking up tile " << j << ", " << i << std::endl;
+                if (collisionMap[j][i] == BOX)
+                {
+                    std::cout << "It is a BOX!" << std::endl;
+
+                    intPoint startTile = {j,i};
+                    intPoint currTile = startTile;
+                    int prevDirection = 0; //0 = DOWN, 1 = LEFT, 2 = UP, 3 = RIGHT
+                    std::vector <intPoint> visitedTile;
+                    visitedTile.push_back(currTile);
+
+                    vCollisionPolygon.push_back((floatPoint){0,0});
+                    std::cout << "There is now " << vCollisionPolygon.size() << " polygons in the collision array" << std::endl;
+
+                    do
+                    {
+                        std::cout << "Going through the while loop." << std::endl;
+                        for (int k = 0; k < 4; k++)
+                        {
+                            if ((k + prevDirection)%4 == 0)
+                            {
+                                std::cout << "Checking if the top tile is a BOX" << std::endl;
+                                if (currTile.y -1 >= 0 && collisionMap[currTile.x][currTile.y - 1] == BOX)
+                                {
+                                    std::cout << "It is a BOX!" << std::endl;
+                                    prevDirection = 3;
+                                    visitedTile.push_back((intPoint){currTile.x, currTile.y - 1});
+                                    break;
+
+                                }
+                            }
+                            else if ((k + prevDirection)%4 == 1)
+                            {
+                                std::cout << "Checking if the left tile is a BOX" << std::endl;
+                                if (currTile.x +1 < mapSize.x - 1 && collisionMap[currTile.x+1][currTile.y] == BOX)
+                                {
+                                    std::cout << "It is a BOX!" << std::endl;
+                                    prevDirection = 0;
+                                    visitedTile.push_back((intPoint){currTile.x + 1, currTile.y});
+                                    break;
+                                }
+                            }
+                            else if ((k + prevDirection)%4 == 2)
+                            {
+                                std::cout << "Checking if the bottom tile is a BOX" << std::endl;
+                                if (currTile.y +1 < mapSize.y - 1 && collisionMap[currTile.x][currTile.y+1] == BOX)
+                                {
+                                    std::cout << "It is a BOX!" << std::endl;
+                                    prevDirection = 1;
+                                    visitedTile.push_back((intPoint){currTile.x, currTile.y + 1});
+                                    break;
+                                }
+                            }
+                            else if ((k + prevDirection)%4 == 3)
+                            {
+                                std::cout << "Checking if the right tile is a BOX" << std::endl;
+                                if (currTile.x -1 >= 0 && collisionMap[currTile.x-1][currTile.y] == BOX)
+                                {
+                                    std::cout << "It is a BOX!" << std::endl;
+                                    prevDirection = 2;
+                                    visitedTile.push_back((intPoint){currTile.x - 1, currTile.y});
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                std::cout << "Something is wrong" << std::endl;
+                            }
+
+                        }
+                    }
+                    while (currTile.x != startTile.x || currTile.y != startTile.y);
+
+                    for (int k = 0; k < visitedTile.size(); k++)
+                    {
+                        std::cout << "Changing the tile map to NONE " << visitedTile[k].x << ", " << visitedTile[k].y << std::endl;
+                        collisionMap[visitedTile[k].x][visitedTile[k].y] = NONE;
+                    }
+                }
+            }
+        }
     }
     else
     {
@@ -1870,6 +2136,14 @@ int main(int argc, char* argv[])
 	}
     else if ( loadWorld())
     {
+        //Temporary hack
+        polygon charCollisionHack = gPlayer.position;
+        charCollisionHack.addVertex((floatPoint){4-24, 25-43});
+        charCollisionHack.addVertex((floatPoint){40-24, 0-43});
+        charCollisionHack.addVertex((floatPoint){46-24, 53-43});
+        charCollisionHack.addVertex((floatPoint){4-24, 53-43});
+        charCollisionHack.rotation = gPlayer.angle;
+
         pause();
 
         //Event handler
@@ -1922,6 +2196,14 @@ int main(int argc, char* argv[])
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
 
                 //SDL_RenderDrawLine( gRenderer, gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y);
+
+                charCollisionHack.position = gPlayer.position;
+                charCollisionHack.rotation = gPlayer.angle;
+
+                SDL_RenderDrawLine( gRenderer, charCollisionHack.getVertexAbsPos(0).x, charCollisionHack.getVertexAbsPos(0).y, charCollisionHack.getVertexAbsPos(1).x, charCollisionHack.getVertexAbsPos(1).y);
+                SDL_RenderDrawLine( gRenderer, charCollisionHack.getVertexAbsPos(1).x, charCollisionHack.getVertexAbsPos(1).y, charCollisionHack.getVertexAbsPos(2).x, charCollisionHack.getVertexAbsPos(2).y);
+                SDL_RenderDrawLine( gRenderer, charCollisionHack.getVertexAbsPos(2).x, charCollisionHack.getVertexAbsPos(2).y, charCollisionHack.getVertexAbsPos(3).x, charCollisionHack.getVertexAbsPos(3).y);
+                SDL_RenderDrawLine( gRenderer, charCollisionHack.getVertexAbsPos(3).x, charCollisionHack.getVertexAbsPos(3).y, charCollisionHack.getVertexAbsPos(0).x, charCollisionHack.getVertexAbsPos(0).y);
 
                 //std::cout << "Distance from character to mouse: " << evalDistance(gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y) << " Angle: " << gPlayer.angle << std::endl;
 
