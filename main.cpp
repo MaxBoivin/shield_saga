@@ -533,7 +533,7 @@ class player: public character
 
         player();
 
-        collisionAxis checkCollisionTerrain(std::vector <intPoint> collider);
+        collisionAxis checkCollisionTerrain(terrainMap currMap);
 
         void evaluateKeyInput(const Uint8* currentKeyStates);
 
@@ -602,6 +602,8 @@ bool pointOnVectorCheck(floatPoint point, floatPoint vecStart, floatPoint vecEnd
 int threePointOrientation(floatPoint point1, floatPoint point2, floatPoint point3);
 
 bool vectorCrossCheck(floatPoint vec1Start, floatPoint vec1End, floatPoint vec2Start, floatPoint vec2End);
+
+floatPoint vectorCrossPoint(floatPoint vec1Start, floatPoint vec1End, floatPoint vec2Start, floatPoint vec2End);
 
 SDL_Texture* loadTexture(std::string path);
 
@@ -673,24 +675,25 @@ void polygon::cleanPolygon()
             }
         }
     }
-    bool tangled = false;
-    /*do
+    for (int i = 0; i < vertex.size(); i++)
     {
-        tangled = false;
-        for (int i = 0; i < vertex.size(); i++)
+        if (threePointOrientation(vertex[i % vertex.size()], vertex[(i +1) % vertex.size()], vertex[(i +2) % vertex.size()]) == 0)
         {
-            for (int j = 0; j < vertex.size(); j++)
+            vertex.erase(vertex.begin() + (i +1) % vertex.size());
+        }
+    }
+    for (int i = 0; i < vertex.size(); i++)
+    {
+        for (int j = 0; j < vertex.size(); j++)
+        {
+            if (pointOnVectorCheck(vertex[i % vertex.size()], vertex[(j) % vertex.size()], vertex[(j +1) % vertex.size()])
+                && i % vertex.size() != (j) % vertex.size() && i % vertex.size() != (j + 1) % vertex.size())
             {
-                if (vectorCrossCheck(vertex[i], vertex[(i+2)%vertex.size()], vertex[j], vertex[(j+2)%vertex.size()]))
-                {
-                    floatPoint tempVertex = vertex[i];
-                    vertex[i] = vertex[j];
-                    vertex[j] = tempVertex;
-                    tangled = true;
-                }
+                vertex.erase(vertex.begin() + i % vertex.size());
             }
         }
-    }while (tangled);*/
+    }
+
     vertex.shrink_to_fit();
 }
 
@@ -955,7 +958,7 @@ bool character::changeState(characterState newState)
     return stateChanged;
 }
 
-bool character::checkCollisionTerrain(std::vector <intPoint> collider)
+/*bool character::checkCollisionTerrain(std::vector <intPoint> collider)
 {
     bool collide = false;
 
@@ -1022,9 +1025,9 @@ bool character::checkCollisionTerrain(std::vector <intPoint> collider)
     }
 
     return collide;
-}
+}*/
 
-collisionAxis player::checkCollisionTerrain(std::vector <intPoint> collider)
+collisionAxis player::checkCollisionTerrain(terrainMap currMap)
 {
     collisionAxis collide = NO_AXIS_COLLIDING;
 
@@ -1042,148 +1045,39 @@ collisionAxis player::checkCollisionTerrain(std::vector <intPoint> collider)
     charCollisionHack.addVertex((floatPoint){4-24, 53-43});
     charCollisionHack.rotation = angle;
 
-    for (int i = 0; i < collider.size(); i++)
+    for (int i = 0; i < currMap.vGate.size(); i++)
     {
-        floatPoint currColliderPos = {(collider[i].x * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2), (collider[i].y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2)};
-
-        collisionType currCollide = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].tileMap[collider[i].x][collider[i].y][MIDGROUND].collide;
-
-        if (currCollide == GATE)
+        floatPoint gatePos = {(currMap.vGate[i].position.x * MAP_TILE_WIDTH + MAP_TILE_WIDTH/2), (currMap.vGate[i].position.y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT/2)};
+        if (evalDistance(position, gatePos) <= charRadius)
         {
-            if (evalDistance(position, currColliderPos) < charRadius)
+            std::cout << "Player touching a gate." << std::endl;
+            collideWithGate = true;
+            if (!justGated)
             {
-                if (!justGated)
-                {
-                    for (int j = 0; j < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate.size(); j++)
-                    {
-                        if ( (collider[i].x == gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].position.x) && (collider[i].y == gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].position.y))
-                        {
-                            position.x = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetPosCoord.x * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2;
-                            position.y = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetPosCoord.y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2;
-                            gCurWorldCoord = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vGate[j].targetWorldCoord;
-                            break;
-                        }
-                    }
-                    justGated = true;
-                }
-                collideWithGate = true;
+                gCurWorldCoord = currMap.vGate[i].targetWorldCoord;
+                position.x = currMap.vGate[i].targetPosCoord.x * MAP_TILE_WIDTH + MAP_TILE_WIDTH/2;
+                position.y = currMap.vGate[i].targetPosCoord.y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT/2;
+                justGated = true;
             }
         }
-        else if (currCollide == BOX)
-        {
-            //floatPoint objMin = {currColliderPos.x - MAP_TILE_WIDTH / 2, currColliderPos.y - MAP_TILE_HEIGHT / 2};
-            //floatPoint objMax = {currColliderPos.x + MAP_TILE_WIDTH / 2, currColliderPos.y + MAP_TILE_HEIGHT / 2};
-
-            polygon currCollider = (floatPoint){(collider[i].x * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2), (collider[i].y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2)};
-
-            currCollider.addVertex((floatPoint){-1 * MAP_TILE_WIDTH / 2, -1 * MAP_TILE_HEIGHT / 2});
-            currCollider.addVertex((floatPoint){MAP_TILE_WIDTH / 2, -1 * MAP_TILE_HEIGHT / 2});
-            currCollider.addVertex((floatPoint){MAP_TILE_WIDTH / 2, MAP_TILE_HEIGHT / 2});
-            currCollider.addVertex((floatPoint){-1 * MAP_TILE_WIDTH / 2, MAP_TILE_HEIGHT / 2});
-
-            for (int j = 0; j < charCollisionHack.getSideNumber(); j++)
-            {
-                if((vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(0),currCollider.getVertexAbsPos(1)) ||
-                    vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(2),currCollider.getVertexAbsPos(3))) &&
-                   (vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(0),currCollider.getVertexAbsPos(2)) ||
-                    vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(1),currCollider.getVertexAbsPos(3))))
-                {
-                    collide = XY;
-                    std::cout << "Collision detected: XY " << collide << std::endl;
-                }
-                else if (vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(0),currCollider.getVertexAbsPos(1)) ||
-                        vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(2),currCollider.getVertexAbsPos(3)))
-                {
-                    if (collide == NO_AXIS_COLLIDING)
-                    {
-                        collide = X;
-                        std::cout << "Collision detected: X " << collide << std::endl;
-                    }
-                    else if (collide == Y)
-                    {
-                        collide = XY;
-                        std::cout << "Collision detected: XY " << collide << std::endl;
-                    }
-                }
-                else if (vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(0),currCollider.getVertexAbsPos(2)) ||
-                    vectorCrossCheck(charCollisionHack.getVertexAbsPos(j),charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber()),currCollider.getVertexAbsPos(1),currCollider.getVertexAbsPos(3)))
-                {
-                    if (collide == NO_AXIS_COLLIDING)
-                    {
-                        collide = Y;
-                        std::cout << "Collision detected: Y " << collide << std::endl;
-                    }
-                    else if (collide == X)
-                    {
-                        collide = XY;
-                        std::cout << "Collision detected: XY " << collide << std::endl;
-                    }
-                }
-            }
-
-            /*if ( ( vectorCrossCheck(position,(floatPoint){position.x + charRadius, position.y - charRadius}, (floatPoint){objMin.x, objMin.y}, (floatPoint){objMax.x, objMin.y}) ||
-                vectorCrossCheck(position,(floatPoint){position.x + charRadius, position.y + charRadius}, (floatPoint){objMin.x, objMin.y}, (floatPoint){objMax.x, objMin.y}) ||
-                vectorCrossCheck(position,(floatPoint){position.x - charRadius, position.y - charRadius}, (floatPoint){objMin.x, objMax.y}, (floatPoint){objMax.x, objMax.y}) ||
-                vectorCrossCheck(position,(floatPoint){position.x - charRadius, position.y + charRadius}, (floatPoint){objMin.x, objMax.y}, (floatPoint){objMax.x, objMax.y}) ) &&
-                ( vectorCrossCheck(position,(floatPoint){position.x + charRadius, position.y - charRadius}, (floatPoint){objMin.x, objMin.y}, (floatPoint){objMin.x, objMax.y}) ||
-                vectorCrossCheck(position,(floatPoint){position.x + charRadius, position.y + charRadius}, (floatPoint){objMin.x, objMin.y}, (floatPoint){objMin.x, objMax.y}) ||
-                vectorCrossCheck(position,(floatPoint){position.x - charRadius, position.y - charRadius}, (floatPoint){objMax.x, objMin.y}, (floatPoint){objMax.x, objMax.y}) ||
-                vectorCrossCheck(position,(floatPoint){position.x - charRadius, position.y + charRadius}, (floatPoint){objMax.x, objMin.y}, (floatPoint){objMax.x, objMax.y}) ) /*||
-                ((evalDistance(position, (floatPoint){objMin.x, objMin.y}) < charRadius)||
-                (evalDistance(position, (floatPoint){objMin.x, objMax.y}) < charRadius)||
-                (evalDistance(position, (floatPoint){objMax.x, objMin.y}) < charRadius)||
-                (evalDistance(position, (floatPoint){objMax.x, objMax.y}) < charRadius))*//*)
-            {
-                collide = XY;
-                std::cout << "Collision detected: " << collide << std::endl;
-            }
-            else if ( vectorCrossCheck(position,(floatPoint){position.x + charRadius, position.y}, (floatPoint){objMin.x, objMin.y}, (floatPoint){objMin.x, objMax.y}) ||
-                vectorCrossCheck(position,(floatPoint){position.x - charRadius, position.y}, (floatPoint){objMax.x, objMin.y}, (floatPoint){objMax.x, objMax.y}) )
-            {
-                if (collide == NO_AXIS_COLLIDING)
-                {
-                    collide = X;
-                    std::cout << "Collision detected: " << collide << std::endl;
-                }
-                else if (collide == Y)
-                {
-                    collide = XY;
-                    std::cout << "Collision detected: " << collide << std::endl;
-                }
-
-            }
-            else if ( vectorCrossCheck(position,(floatPoint){position.x, position.y + charRadius}, (floatPoint){objMin.x, objMin.y}, (floatPoint){objMax.x, objMin.y}) ||
-                vectorCrossCheck(position,(floatPoint){position.x, position.y - charRadius}, (floatPoint){objMin.x, objMax.y}, (floatPoint){objMax.x, objMax.y}) )
-            {
-                if (collide == NO_AXIS_COLLIDING)
-                {
-                    collide = Y;
-                    std::cout << "Collision detected: " << collide << std::endl;
-                }
-                else if (collide == X)
-                {
-                    collide = XY;
-                    std::cout << "Collision detected: " << collide << std::endl;
-                }
-            }*/
-        }
-        else if (currCollide == RADIAL)
-        {
-            if (evalDistance(position, currColliderPos) < (charRadius + fmin(MAP_TILE_HEIGHT, MAP_TILE_WIDTH)/2))
-            {
-                collide = XY;
-
-                std::cout << "Collision detected: " << collide << std::endl;
-
-                //std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
-            }
-        }
-
     }
-
     if (collideWithGate == false)
     {
         justGated = false;
+    }
+
+    for (int i = 0; i < currMap.vCollisionPolygon.size(); i++)
+    {
+        for (int j = 0; j < charCollisionHack.getSideNumber(); j++)
+        {
+            for ( int k = 0; k < currMap.vCollisionPolygon[i].getSideNumber(); k++)
+            {
+                if (vectorCrossCheck(currMap.vCollisionPolygon[i].getVertexAbsPos(k), currMap.vCollisionPolygon[i].getVertexAbsPos((k+1)%currMap.vCollisionPolygon[i].getSideNumber()), charCollisionHack.getVertexAbsPos(j), charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber())))
+                {
+                    collide = XY;
+                }
+            }
+        }
     }
 
     return collide;
@@ -1264,14 +1158,14 @@ void player::evaluateKeyInput(const Uint8* currentKeyStates)
         changeState(IDLE);
     }
 
-    /*if (currentKeyStates[ SDL_SCANCODE_LSHIFT] )
+    if (currentKeyStates[ SDL_SCANCODE_LSHIFT] )
     {
         gPlayer.speed = 0.4;
     }
     else
     {
         gPlayer.speed = 0.1;
-    }*/
+    }
 }
 
 void player::updatePos()
@@ -1365,7 +1259,7 @@ void player::updatePos()
         position.y = prevPosition.y;
     }
 
-    switch(checkCollisionTerrain(gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vTerrainCollide))
+    switch(checkCollisionTerrain(gWorld[gCurWorldCoord.x][gCurWorldCoord.y]))
     {
         case XY:
             position.x = prevPosition.x;
@@ -1531,12 +1425,14 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
         if ( tempRead == "GATE")
         {
-            vGate.clear();
+            //std::cout << "Loading up the gate from the map File" << std::endl;
+            //std::cout << "Expected number of gate : " << gateNumber << std::endl;
             for (int i = 0; i < gateNumber; i++)
             {
+                //std::cout << "Reading the gate " << i << std::endl;
                 mapFile >> vGate[i].targetWorldCoord.x >> vGate[i].targetWorldCoord.y >> vGate[i].targetPosCoord.x >> vGate[i].targetPosCoord.y;
-                //std::cout << "Gate " << i << ": Pos: " << vGate[i].position.x << ", " << vGate[i].position.y << " TargetWorld: " << vGate[i].targetWorldCoord.x << ", " << vGate[i].targetWorldCoord.y << " TargetPos: " << vGate[i].targetPosCoord.x << ", " << vGate[i].targetPosCoord.y << std::endl;
             }
+            //std::cout << "Found number of gate : " << vGate.size() << std::endl;
         }
 
         success = true;
@@ -1563,7 +1459,7 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                     visitedTile.push_back(currTile);
 
                     vCollisionPolygon.push_back((floatPoint){0,0});
-                    std::cout << "There is now " << vCollisionPolygon.size() << " polygons in the collision array" << std::endl;
+                    //std::cout << "There is now " << vCollisionPolygon.size() << " polygons in the collision array" << std::endl;
                     vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){currTile.x * MAP_TILE_WIDTH, currTile.y * MAP_TILE_HEIGHT});
 
                     do
@@ -1729,6 +1625,8 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
     {
         std::cout << "Could not find map file " << std::to_string(mapCoordX) << "-" << std::to_string(mapCoordY) << ".map" << std::endl;
     }
+
+    std::cout << "Exiting the terrainMap::loadMap function." << std::endl;
 
     return success;
 }
@@ -1960,6 +1858,8 @@ bool loadWorld()
 {
     bool success = false;
 
+    std::cout << "Loading the world" << std::endl;
+
     for (int i = 0; i < WORLD_HEIGHT; i++)
     {
         for (int j = 0; j < WORLD_WIDTH; j++)
@@ -2065,6 +1965,15 @@ bool vectorCrossCheck(floatPoint vec1Start, floatPoint vec1End, floatPoint vec2S
     }
 
     return crossing;
+}
+
+floatPoint vectorCrossPoint(floatPoint vec1Start, floatPoint vec1End, floatPoint vec2Start, floatPoint vec2End)
+{
+    floatPoint result = {-1, -1};
+
+
+
+    return result;
 }
 
 bool renderText(std::string text, TTF_Font* font, int posX, int posY, SDL_Color textColor, int pointSize)
@@ -2263,7 +2172,7 @@ void newGame()
 
 int main(int argc, char* argv[])
 {
-   intPoint position(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
+    std::cout << "Welcome to " << APPLICATION_NAME << std::endl;
 
     //Start up SDL and create window
 	if( !init() )
