@@ -217,6 +217,8 @@ class polygon
 
         void cleanPolygon();
 
+        std::vector <polygon> convexPolygonSplit();
+
         void draw(SDL_Renderer* renderer);
 
         floatPoint position;
@@ -601,6 +603,8 @@ bool pointOnVectorCheck(floatPoint point, floatPoint vecStart, floatPoint vecEnd
 
 int threePointOrientation(floatPoint point1, floatPoint point2, floatPoint point3);
 
+float threePointAngle(floatPoint point1, floatPoint point2, floatPoint point3);
+
 bool vectorCrossCheck(floatPoint vec1Start, floatPoint vec1End, floatPoint vec2Start, floatPoint vec2End);
 
 floatPoint vectorCrossPoint(floatPoint vec1Start, floatPoint vec1End, floatPoint vec2Start, floatPoint vec2End);
@@ -695,6 +699,34 @@ void polygon::cleanPolygon()
     }
 
     vertex.shrink_to_fit();
+}
+
+std::vector <polygon> polygon::convexPolygonSplit()
+{
+    std::vector <polygon> polygonAssembly;
+    polygonAssembly.push_back(position);
+
+    for (int i = 0; i < vertex.size(); i++)
+    {
+        polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[(i)%vertex.size()]);
+
+        //Need to make a check for the orientation or change the threePointAngle function.
+
+        if (abs(threePointAngle(vertex[(i) % vertex.size()], vertex[(i+1) % vertex.size()], vertex[(i+2) % vertex.size()])) > 180)
+        {
+            int j = (i+1)%vertex.size();
+            while(abs(threePointAngle(vertex[(i-1) % vertex.size()], vertex[(i) % vertex.size()], vertex[j % vertex.size()])) > 180 )
+            {
+                j++;
+            }
+            polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[j]);
+            polygonAssembly.push_back(position);
+            polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[i]);
+        }
+    }
+    //std::cout << "From convexPolygonSplit function, polygonAssembly.size() = " << polygonAssembly.size() << std::endl;
+
+    return polygonAssembly;
 }
 
 void polygon::addVertex(floatPoint newVertexRelPosisition)
@@ -1040,7 +1072,7 @@ collisionAxis player::checkCollisionTerrain(terrainMap currMap)
     //Temporary hack
     polygon charCollisionHack = position;
     charCollisionHack.addVertex((floatPoint){4-24, 25-43});
-    charCollisionHack.addVertex((floatPoint){4-24, 0-43});
+    charCollisionHack.addVertex((floatPoint){40-24, 0-43});
     charCollisionHack.addVertex((floatPoint){46-24, 53-43});
     charCollisionHack.addVertex((floatPoint){4-24, 53-43});
     charCollisionHack.rotation = angle;
@@ -1072,9 +1104,15 @@ collisionAxis player::checkCollisionTerrain(terrainMap currMap)
         {
             for ( int k = 0; k < currMap.vCollisionPolygon[i].getSideNumber(); k++)
             {
-                if (vectorCrossCheck(currMap.vCollisionPolygon[i].getVertexAbsPos(k), currMap.vCollisionPolygon[i].getVertexAbsPos((k+1)%currMap.vCollisionPolygon[i].getSideNumber()), charCollisionHack.getVertexAbsPos(j), charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber())))
+                floatPoint crossPoint = (vectorCrossPoint(currMap.vCollisionPolygon[i].getVertexAbsPos(k), currMap.vCollisionPolygon[i].getVertexAbsPos((k+1)%currMap.vCollisionPolygon[i].getSideNumber()), charCollisionHack.getVertexAbsPos(j), charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber())));
+                //std::cout << "Character vertex number: " << j << " Coord: " << charCollisionHack.getVertexRelPos(j).x << ", " << charCollisionHack.getVertexRelPos(j).y << std::endl;
+                if (crossPoint.x != -1 && crossPoint.y != -1)
                 {
-                    collide = XY;
+                    //floatPoint correction = {charCollisionHack.getVertexAbsPos(j).x - crossPoint.x, charCollisionHack.getVertexAbsPos(j).y - crossPoint.y};
+                    //position.x = position.x - correction.x;
+                    //position.y = position.y - correction.y;
+                    //std::cout << "Collision point: " << crossPoint.x << ", " << crossPoint.y << std::endl;
+                    //collide = XY;
                 }
             }
         }
@@ -1930,6 +1968,24 @@ int threePointOrientation(floatPoint point1, floatPoint point2, floatPoint point
     return orientation;
 }
 
+float threePointAngle(floatPoint point1, floatPoint point2, floatPoint point3)
+{
+    floatPoint point1Rel = (floatPoint){point1.x - point2.x, point1.y - point2.y};
+    floatPoint point3Rel = (floatPoint){point3.x - point2.x, point3.y - point2.y};
+
+    float anglePoint1toWorld = atan2(point1Rel.y, point1Rel.x)*-180/PI;
+    float anglePoint3toWorld = atan2(point3Rel.y, point3Rel.x)*-180/PI;
+
+    float resultAngle = anglePoint1toWorld - anglePoint3toWorld;
+
+    if (resultAngle < 0)
+    {
+        resultAngle = 360 + resultAngle;
+    }
+
+    return resultAngle;
+}
+
 bool vectorCrossCheck(floatPoint vec1Start, floatPoint vec1End, floatPoint vec2Start, floatPoint vec2End)
 {
     bool crossing = false;
@@ -1971,8 +2027,24 @@ floatPoint vectorCrossPoint(floatPoint vec1Start, floatPoint vec1End, floatPoint
 {
     floatPoint result = {-1, -1};
 
+    if (vectorCrossCheck(vec1Start, vec1End, vec2Start, vec2End))
+    {
+        float tempA1 = vec1End.y - vec1Start.y;
+        float tempB1 = vec1Start.x - vec1End.x;
+        float tempC1 = tempA1*vec1Start.x+tempB1*vec1Start.y;
 
+        float tempA2 = vec2End.y - vec2Start.y;
+        float tempB2 = vec2Start.x - vec2End.x;
+        float tempC2 = tempA2*vec2Start.x+tempB2*vec2Start.y;
 
+        float det = tempA1*tempB2 - tempA2*tempB1;
+
+        if (det != 0)
+        {
+            result.x = (tempB2*tempC1 - tempB1*tempC2)/det;
+            result.y = (tempA1*tempC2 - tempA2*tempC1)/det;
+        }
+    }
     return result;
 }
 
@@ -2163,6 +2235,7 @@ void menuDisplay()
 void newGame()
 {
     //Start the global timer
+    gCurWorldCoord = (intPoint){0,0};
     gTimer.start();
     gPlayer.free();
     gPlayer.spriteSheet = loadTexture((CHARACTER_SPRITESHEET_PATH + ".png").c_str());
@@ -2193,12 +2266,28 @@ int main(int argc, char* argv[])
         charCollisionHack.addVertex((floatPoint){4-24, 53-43});
         charCollisionHack.rotation = gPlayer.angle;
 
-        pause();
-
         //Event handler
         SDL_Event e;
 
         Uint32 drawTimer = SDL_GetTicks();
+
+        /*********************
+        Function testing zone!
+        **********************/
+        std::cout << "************\nFunction testing zone\n************\n";
+
+        std::cout << "Testing the threePointAngle function.\nPoint1 = 10,0    Point2 = 0, 0     Point3 = 0, -10\nExpected result: 270\n";
+        float testAngle = (threePointAngle((floatPoint){10,0},(floatPoint){0,0}, (floatPoint){0,-10}));
+        std::cout << "Result obtained: " << testAngle << std::endl;
+        std::cout << "Testing the threePointAngle function.\nPoint1 = 0,-10    Point2 = 0, 0     Point3 = 10, 0\nExpected result: 90\n";
+        testAngle = (threePointAngle((floatPoint){0,-10},(floatPoint){0,0}, (floatPoint){10,0}));
+        std::cout << "Result obtained: " << testAngle << std::endl;
+
+        /*********************
+        Back to regular programing!
+        **********************/
+
+        pause();
 
         while( !gQuit )
         {
@@ -2252,10 +2341,20 @@ int main(int argc, char* argv[])
                 charCollisionHack.draw(gRenderer);
 
 
-                for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size();i++)
+                /*for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size();i++)
                 {
                     SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * i)%256, 0xFF + (33333 * i)%256, 0xFF + (99999 * i)%256, 0xFF );
                     gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].draw(gRenderer);
+                }*/
+
+                for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size();i++)
+                {
+                    std::vector <polygon> split = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].convexPolygonSplit();
+                    for (int j = 0; j < split.size(); j++)
+                    {
+                        SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * j*i)%256, 0xFF + (33333 * j*i)%256, 0xFF + (99999 * j*i)%256, 0xFF );
+                        split[j].draw(gRenderer);
+                    }
                 }
 
                 /*if (gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size() > 5)
