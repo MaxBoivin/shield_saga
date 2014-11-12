@@ -706,16 +706,18 @@ std::vector <polygon> polygon::convexPolygonSplit()
     std::vector <polygon> polygonAssembly;
     polygonAssembly.push_back(position);
 
-    for (int i = 0; i < vertex.size(); i++)
+    polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[(1)%vertex.size()]);
+
+    for (int i = 0; i < vertex.size()+1; i++)
     {
-        polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[(i)%vertex.size()]);
+        polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[(i+1)%vertex.size()]);
 
         //Need to make a check for the orientation or change the threePointAngle function.
 
-        if (abs(threePointAngle(vertex[(i) % vertex.size()], vertex[(i+1) % vertex.size()], vertex[(i+2) % vertex.size()])) > 180)
+        if (threePointAngle(vertex[(i+2) % vertex.size()], vertex[(i+1) % vertex.size()], vertex[(i) % vertex.size()]) > 180)
         {
-            int j = (i+1)%vertex.size();
-            while(abs(threePointAngle(vertex[(i-1) % vertex.size()], vertex[(i) % vertex.size()], vertex[j % vertex.size()])) > 180 )
+            int j = (i+2)%vertex.size();
+            while(threePointAngle(vertex[j % vertex.size()], vertex[(i + 1) % vertex.size()], vertex[i % vertex.size()]) > 180 )
             {
                 j++;
             }
