@@ -706,24 +706,27 @@ std::vector <polygon> polygon::convexPolygonSplit()
     std::vector <polygon> polygonAssembly;
     polygonAssembly.push_back(position);
 
-    polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[(1)%vertex.size()]);
+    polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[(0)%vertex.size()]);
 
-    for (int i = 0; i < vertex.size()+1; i++)
+    int j = 2;
+
+    for (int i = 0; i +j < vertex.size()+1; i++)
     {
-        polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[(i+1)%vertex.size()]);
+        int point1 = i;
+        int point2 = (i+1)% % vertex.size();
+        int point3 = (i+j)% % vertex.size();
 
         //Need to make a check for the orientation or change the threePointAngle function.
 
-        if (threePointAngle(vertex[(i+2) % vertex.size()], vertex[(i+1) % vertex.size()], vertex[(i) % vertex.size()]) > 180)
+        if (threePointAngle(vertex[(i+2+j) % vertex.size()], vertex[(i+1) % vertex.size()], vertex[(i) % vertex.size()]) < 180)
         {
-            int j = (i+2)%vertex.size();
-            while(threePointAngle(vertex[j % vertex.size()], vertex[(i + 1) % vertex.size()], vertex[i % vertex.size()]) > 180 )
-            {
-                j++;
-            }
-            polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[j]);
-            polygonAssembly.push_back(position);
-            polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[i]);
+            polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[(i+1+j)%vertex.size()]);
+        }
+        else
+        {
+            j++;
+            //polygonAssembly.push_back(position);
+            //polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[(i + 1) % vertex.size()]);
         }
     }
     //std::cout << "From convexPolygonSplit function, polygonAssembly.size() = " << polygonAssembly.size() << std::endl;
@@ -2281,9 +2284,11 @@ int main(int argc, char* argv[])
         std::cout << "Testing the threePointAngle function.\nPoint1 = 10,0    Point2 = 0, 0     Point3 = 0, -10\nExpected result: 270\n";
         float testAngle = (threePointAngle((floatPoint){10,0},(floatPoint){0,0}, (floatPoint){0,-10}));
         std::cout << "Result obtained: " << testAngle << std::endl;
+        std::cout << "Three point orientation: " << (threePointOrientation((floatPoint){10,0},(floatPoint){0,0}, (floatPoint){0,-10})) << std::endl;
         std::cout << "Testing the threePointAngle function.\nPoint1 = 0,-10    Point2 = 0, 0     Point3 = 10, 0\nExpected result: 90\n";
         testAngle = (threePointAngle((floatPoint){0,-10},(floatPoint){0,0}, (floatPoint){10,0}));
         std::cout << "Result obtained: " << testAngle << std::endl;
+        std::cout << "Three point orientation: " << (threePointOrientation((floatPoint){0,-10},(floatPoint){0,0}, (floatPoint){10,0})) << std::endl;
 
         /*********************
         Back to regular programing!
