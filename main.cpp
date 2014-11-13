@@ -703,33 +703,55 @@ void polygon::cleanPolygon()
 
 std::vector <polygon> polygon::convexPolygonSplit()
 {
+    polygon sourcePolygon = position;
+
+    for (int i = 0; i < vertex.size(); i++)
+    {
+        sourcePolygon.addVertex(vertex[i]);
+    }
+
     std::vector <polygon> polygonAssembly;
     polygonAssembly.push_back(position);
 
-    polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[(0)%vertex.size()]);
+    polygonAssembly[polygonAssembly.size()-1].addVertex(sourcePolygon.vertex[0]);
 
-    int j = 2;
+    //int i = 0;
+    //int j = 1;
 
-    for (int i = 0; i +j < vertex.size()+1; i++)
+    int point1 = (sourcePolygon.vertex.size() - 1);
+    int point2 = 0;
+    int point3 = 1;
+
+    int breakPoint = point2;
+
+    //std::cout << "Entering the convexPolygonsplit function.\n Point2: " << point2 << " Vertex size: " << vertex.size() << std::endl;
+
+    while( sourcePolygon.vertex.size() > 0)
     {
-        int point1 = i;
-        int point2 = (i+1)% % vertex.size();
-        int point3 = (i+j)% % vertex.size();
-
-        //Need to make a check for the orientation or change the threePointAngle function.
-
-        if (threePointAngle(vertex[(i+2+j) % vertex.size()], vertex[(i+1) % vertex.size()], vertex[(i) % vertex.size()]) < 180)
+        sourcePolygon.delVertex(sourcePolygon.vertex.size()-1);
+        /*do
         {
-            polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[(i+1+j)%vertex.size()]);
+            while(threePointAngle(sourcePolygon.vertex[point3], sourcePolygon.vertex[point2], sourcePolygon.vertex[point1]) > 180)
+            {
+                point3 = (point3 + 1);//%sourcePolygon.vertex.size();
+            }
+            breakPoint = point2;
+            polygonAssembly[polygonAssembly.size()-1].addVertex(sourcePolygon.vertex[point2]);
+            sourcePolygon.delVertex(point2);
+
+            point1 = point2;
+            point2 = point3;
+            point3 = (point3 + 1); //% sourcePolygon.vertex.size();
+
         }
-        else
-        {
-            j++;
-            //polygonAssembly.push_back(position);
-            //polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[(i + 1) % vertex.size()]);
-        }
+        while(point3 < sourcePolygon.vertex.size());*/
+
+        point2 = breakPoint;
+        polygonAssembly.push_back(position);
     }
     //std::cout << "From convexPolygonSplit function, polygonAssembly.size() = " << polygonAssembly.size() << std::endl;
+
+    cleanPolygon();
 
     return polygonAssembly;
 }
@@ -2359,7 +2381,7 @@ int main(int argc, char* argv[])
                     std::vector <polygon> split = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].convexPolygonSplit();
                     for (int j = 0; j < split.size(); j++)
                     {
-                        SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * j*i)%256, 0xFF + (33333 * j*i)%256, 0xFF + (99999 * j*i)%256, 0xFF );
+                        SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * (j+1)*(i+1))%256, 0xFF + (33333 * (j+1)*(i+1))%256, 0xFF + (99999 * (j+1)*(i+1))%256, 0xFF );
                         split[j].draw(gRenderer);
                     }
                 }
