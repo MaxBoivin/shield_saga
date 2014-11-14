@@ -703,52 +703,89 @@ void polygon::cleanPolygon()
 
 std::vector <polygon> polygon::convexPolygonSplit()
 {
-    polygon sourcePolygon = position;
+    std::vector <polygon> polygonAssembly;
+    //polygonAssembly.push_back(position);
+
+    std::vector <int> unvisitedVertex;
 
     for (int i = 0; i < vertex.size(); i++)
     {
-        sourcePolygon.addVertex(vertex[i]);
+        unvisitedVertex.push_back(i);
     }
 
-    std::vector <polygon> polygonAssembly;
-    polygonAssembly.push_back(position);
+    bool isSplit = true;
 
-    polygonAssembly[polygonAssembly.size()-1].addVertex(sourcePolygon.vertex[0]);
+    int splitNumberNeeded = 0;
 
-    //int i = 0;
-    //int j = 1;
-
-    int point1 = (sourcePolygon.vertex.size() - 1);
-    int point2 = 0;
-    int point3 = 1;
-
-    int breakPoint = point2;
-
-    //std::cout << "Entering the convexPolygonsplit function.\n Point2: " << point2 << " Vertex size: " << vertex.size() << std::endl;
-
-    while( sourcePolygon.vertex.size() > 0)
+    for (int i = 0; i < vertex.size(); i++)
     {
-        sourcePolygon.delVertex(sourcePolygon.vertex.size()-1);
-        /*do
+        if (threePointAngle(vertex[(i+1)%vertex.size()], vertex[i], vertex[(vertex.size()-1+i)%vertex.size()]) > 180)
         {
-            while(threePointAngle(sourcePolygon.vertex[point3], sourcePolygon.vertex[point2], sourcePolygon.vertex[point1]) > 180)
-            {
-                point3 = (point3 + 1);//%sourcePolygon.vertex.size();
-            }
-            breakPoint = point2;
-            polygonAssembly[polygonAssembly.size()-1].addVertex(sourcePolygon.vertex[point2]);
-            sourcePolygon.delVertex(point2);
-
-            point1 = point2;
-            point2 = point3;
-            point3 = (point3 + 1); //% sourcePolygon.vertex.size();
-
+            isSplit = false;
+            splitNumberNeeded++;
         }
-        while(point3 < sourcePolygon.vertex.size());*/
-
-        point2 = breakPoint;
-        polygonAssembly.push_back(position);
     }
+
+    if (splitNumberNeeded > 0)
+    {
+        std::cout << "A polygon needs " << splitNumberNeeded << " splitting\n";
+    }
+
+    while( !isSplit)
+    {
+        int point1 = unvisitedVertex[(unvisitedVertex.size() - 1)];
+        int point2 = unvisitedVertex[0];
+        int point3 = unvisitedVertex[1];
+
+        std::vector <int> visitedVertex;
+
+        bool consecVertex = false;
+
+        polygonAssembly.push_back(position);
+
+        isSplit = true;
+
+        /*for (int i = 0; i < unvisitedVertex.size(); i++)
+        {
+            polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[point2]);
+            if (threePointAngle(vertex[point3], vertex[point2], vertex[point1]) < 180)
+            {
+                point1 = point2;
+                point2 = point3;
+                point3 = unvisitedVertex[(i+1)%unvisitedVertex.size()];
+                if (true)
+                {
+                    visitedVertex.push_back(i);
+                    //unvisitedVertex.erase(unvisitedVertex.begin() + i);
+                }
+                consecVertex = true;
+                //unvisitedVertex.shrink_to_fit();
+            }
+            else
+            {
+                int j = i;
+                while(!(threePointAngle(vertex[point3], vertex[point2], vertex[point1]) < 180))
+                {
+                    point3 = unvisitedVertex[(j+1)%unvisitedVertex.size()];
+                    j++;
+                }
+                point1 = point2;
+                point2 = point3;
+
+                consecVertex = false;
+
+                isSplit = false;
+                //unvisitedVertex.erase(unvisitedVertex.begin() + i);
+                //unvisitedVertex.shrink_to_fit();
+            }
+        }*/
+
+        for (int i = 0; i < visitedVertex.size(); i++)
+        {
+            unvisitedVertex.erase(unvisitedVertex.begin() + visitedVertex[i]);
+        }
+    }
+
     //std::cout << "From convexPolygonSplit function, polygonAssembly.size() = " << polygonAssembly.size() << std::endl;
 
     cleanPolygon();
@@ -2301,7 +2338,7 @@ int main(int argc, char* argv[])
         /*********************
         Function testing zone!
         **********************/
-        std::cout << "************\nFunction testing zone\n************\n";
+        std::cout << "\n************\nFunction testing zone\n************\n\n";
 
         std::cout << "Testing the threePointAngle function.\nPoint1 = 10,0    Point2 = 0, 0     Point3 = 0, -10\nExpected result: 270\n";
         float testAngle = (threePointAngle((floatPoint){10,0},(floatPoint){0,0}, (floatPoint){0,-10}));
@@ -2311,6 +2348,26 @@ int main(int argc, char* argv[])
         testAngle = (threePointAngle((floatPoint){0,-10},(floatPoint){0,0}, (floatPoint){10,0}));
         std::cout << "Result obtained: " << testAngle << std::endl;
         std::cout << "Three point orientation: " << (threePointOrientation((floatPoint){0,-10},(floatPoint){0,0}, (floatPoint){10,0})) << std::endl;
+
+
+        std::vector <polygon> split;
+        for (int k = 0; k < WORLD_HEIGHT; k++)
+        {
+            for (int j = 0; j < WORLD_WIDTH; j++)
+            {
+                 for (int i = 0; i < gWorld[j][k].vCollisionPolygon.size();i++)
+                {
+                    //split.push_back(gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].position);
+                    std::vector <polygon> tempSplit = gWorld[j][k].vCollisionPolygon[i].convexPolygonSplit();
+                    for (int j = 0; j < tempSplit.size(); j++)
+                    {
+                        split.push_back(tempSplit[j]);
+                    }
+                }
+            }
+        }
+
+        std::cout << "\n************\nBack to regular programming!\n************\n\n";
 
         /*********************
         Back to regular programing!
@@ -2376,14 +2433,10 @@ int main(int argc, char* argv[])
                     gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].draw(gRenderer);
                 }*/
 
-                for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size();i++)
+                for (int j = 0; j < split.size(); j++)
                 {
-                    std::vector <polygon> split = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].convexPolygonSplit();
-                    for (int j = 0; j < split.size(); j++)
-                    {
-                        SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * (j+1)*(i+1))%256, 0xFF + (33333 * (j+1)*(i+1))%256, 0xFF + (99999 * (j+1)*(i+1))%256, 0xFF );
-                        split[j].draw(gRenderer);
-                    }
+                    SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * (j+1))%256, 0xFF + (33333 * (j+1))%256, 0xFF + (99999 * (j+1))%256, 0xFF );
+                    split[j].draw(gRenderer);
                 }
 
                 /*if (gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size() > 5)
