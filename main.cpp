@@ -704,7 +704,7 @@ void polygon::cleanPolygon()
 std::vector <polygon> polygon::convexPolygonSplit()
 {
     std::vector <polygon> polygonAssembly;
-    //polygonAssembly.push_back(position);
+    polygonAssembly.push_back(position);
 
     std::vector <int> unvisitedVertex;
 
@@ -713,76 +713,63 @@ std::vector <polygon> polygon::convexPolygonSplit()
         unvisitedVertex.push_back(i);
     }
 
-    bool isSplit = true;
-
-    int splitNumberNeeded = 0;
-
-    for (int i = 0; i < vertex.size(); i++)
+    for (int i = 0; i < unvisitedVertex.size(); i++)
     {
-        if (threePointAngle(vertex[(i+1)%vertex.size()], vertex[i], vertex[(vertex.size()-1+i)%vertex.size()]) > 180)
+        if (threePointAngle(vertex[(unvisitedVertex[i]+1)%unvisitedVertex.size()], vertex[unvisitedVertex[i]], vertex[(unvisitedVertex.size()-1+i)%unvisitedVertex.size()]) > 180)
         {
-            isSplit = false;
-            splitNumberNeeded++;
+            polygonAssembly.push_back(position);
         }
     }
 
-    if (splitNumberNeeded > 0)
+    if (polygonAssembly.size() > 1)
     {
-        std::cout << "A polygon needs " << splitNumberNeeded << " splitting\n";
+        std::cout << "A polygon needs " << polygonAssembly.size() - 1 << " splitting\n";
     }
 
-    while( !isSplit)
+    for (int i = 0; i < 1; i++)
     {
-        int point1 = unvisitedVertex[(unvisitedVertex.size() - 1)];
-        int point2 = unvisitedVertex[0];
-        int point3 = unvisitedVertex[1];
-
         std::vector <int> visitedVertex;
 
-        bool consecVertex = false;
+        int pointNext = (1%unvisitedVertex.size());
+        int pointCentral = 0;
+        int pointPrev = unvisitedVertex.size()-1;
 
-        polygonAssembly.push_back(position);
+        bool breakPoint = true;
 
-        isSplit = true;
+        std::cout << "Remaining vertex: " << unvisitedVertex.size() << std::endl;
 
-        /*for (int i = 0; i < unvisitedVertex.size(); i++)
+        do
         {
-            polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[point2]);
-            if (threePointAngle(vertex[point3], vertex[point2], vertex[point1]) < 180)
+            //std::cout << "PointCentral: " << pointCentral << std::endl;
+            polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[pointCentral]);
+
+            if (threePointAngle(vertex[unvisitedVertex[pointNext]], vertex[unvisitedVertex[pointCentral]], vertex[unvisitedVertex[pointPrev]]) <= 180 && !breakPoint)
             {
-                point1 = point2;
-                point2 = point3;
-                point3 = unvisitedVertex[(i+1)%unvisitedVertex.size()];
-                if (true)
-                {
-                    visitedVertex.push_back(i);
-                    //unvisitedVertex.erase(unvisitedVertex.begin() + i);
-                }
-                consecVertex = true;
-                //unvisitedVertex.shrink_to_fit();
+                visitedVertex.push_back(unvisitedVertex[pointCentral]);
+                std::cout << "Vertex needed to be removed: " << pointCentral << std::endl;
             }
-            else
+
+            breakPoint = false;
+
+            /*while (threePointAngle(vertex[unvisitedVertex[pointNext]], vertex[unvisitedVertex[pointCentral]], vertex[unvisitedVertex[pointPrev]]) > 180)
             {
-                int j = i;
-                while(!(threePointAngle(vertex[point3], vertex[point2], vertex[point1]) < 180))
-                {
-                    point3 = unvisitedVertex[(j+1)%unvisitedVertex.size()];
-                    j++;
-                }
-                point1 = point2;
-                point2 = point3;
+                pointNext = (pointNext + 1) % unvisitedVertex.size();
+                breakPoint = true;
+            }*/
 
-                consecVertex = false;
+            pointPrev = pointCentral;
+            pointCentral = pointNext;
 
-                isSplit = false;
-                //unvisitedVertex.erase(unvisitedVertex.begin() + i);
-                //unvisitedVertex.shrink_to_fit();
+            if (!breakPoint)
+            {
+                pointNext = (pointNext + 1) % unvisitedVertex.size();
             }
-        }*/
+        }
+        while(pointCentral > 0);
 
-        for (int i = 0; i < visitedVertex.size(); i++)
+        for (int j = visitedVertex.size() - 1; j >= 0; j--)
         {
-            unvisitedVertex.erase(unvisitedVertex.begin() + visitedVertex[i]);
+            unvisitedVertex.erase(unvisitedVertex.begin() + visitedVertex[j]);
         }
     }
 
@@ -1542,6 +1529,28 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
         //Creating a vector of polygon of collision
 
+        /*for (int i = 0; i < mapSize.y; i++)
+        {
+            for (int j = 0; j < mapSize.x; j++)
+            {
+                //std::cout << "Looking up tile " << j << ", " << i << std::endl;
+                if (collisionMap[j][i] == BOX)
+                {
+                    intPoint startTile = {j,i};
+                    intPoint currTile = startTile;
+
+                    std::vector <intPoint> visitedTile;
+                    visitedTile.push_back(currTile);
+
+                    vCollisionPolygon.push_back((floatPoint){0,0});
+
+                    vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){currTile.x * MAP_TILE_WIDTH, currTile.y * MAP_TILE_HEIGHT});
+
+
+                }
+            }
+        }*/
+
         for (int i = 0; i < mapSize.y; i++)
         {
             for (int j = 0; j < mapSize.x; j++)
@@ -1566,7 +1575,6 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
                     do
                     {
-                        //std::cout << "Going through the while loop." << std::endl;
                         for (int k = 0; k < 4; k++)
                         {
                             if ((k + prevDirection)%4 == 0)
@@ -2438,11 +2446,6 @@ int main(int argc, char* argv[])
                     SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * (j+1))%256, 0xFF + (33333 * (j+1))%256, 0xFF + (99999 * (j+1))%256, 0xFF );
                     split[j].draw(gRenderer);
                 }
-
-                /*if (gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size() > 5)
-                {
-                    gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[6].draw(gRenderer);
-                }*/
 
                 //std::cout << "Distance from character to mouse: " << evalDistance(gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y) << " Angle: " << gPlayer.angle << std::endl;
 
