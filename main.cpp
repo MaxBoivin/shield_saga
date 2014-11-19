@@ -705,8 +705,8 @@ std::vector <polygon> polygon::convexPolygonSplit()
 {
     std::vector <polygon> polygonAssembly;
     std::vector <int> concaveAngle;
-    polygonAssembly.push_back(position);
-    concaveAngle.push_back(0);
+    //polygonAssembly.push_back(position);
+    //concaveAngle.push_back(0);
 
     std::vector <int> unvisitedVertex;
 
@@ -733,11 +733,11 @@ std::vector <polygon> polygon::convexPolygonSplit()
     {
         std::vector <int> visitedVertex;
 
-        int pointNext = ((concaveAngle[(i+1)%concaveAngle.size()]+1)%unvisitedVertex.size());
-        int pointCentral = concaveAngle[(i+1)%concaveAngle.size()];
-        int pointPrev = (unvisitedVertex.size()-1+concaveAngle[(i+1)%concaveAngle.size()])%unvisitedVertex.size();
+        int pointNext = ((concaveAngle[(i)%concaveAngle.size()]+1)%unvisitedVertex.size());
+        int pointCentral = concaveAngle[(i)%concaveAngle.size()];
+        int pointPrev = (unvisitedVertex.size()-1+concaveAngle[(i)%concaveAngle.size()])%unvisitedVertex.size();
 
-        bool breakPoint = true;
+        bool closingPoint = false;
 
         std::cout << "Remaining vertex: " << unvisitedVertex.size() << std::endl;
 
@@ -748,32 +748,44 @@ std::vector <polygon> polygon::convexPolygonSplit()
 
             if (threePointAngle(vertex[unvisitedVertex[pointNext]], vertex[unvisitedVertex[pointCentral]], vertex[unvisitedVertex[pointPrev]]) <= 180)
             {
-                polygonAssembly[i].addVertex(vertex[pointCentral]);
-                if (!breakPoint)
+                polygonAssembly[i].addVertex(vertex[pointNext]);
+                if (closingPoint)
                 {
                     visitedVertex.push_back(unvisitedVertex[pointCentral]);
-                    std::cout << "Vertex needed to be removed: " << pointCentral << std::endl;
+                    std::cout << "Vertex needed to be removed: " << (unvisitedVertex[pointCentral]) << std::endl;
                 }
                 else
                 {
-                    breakPoint = false;
+                    closingPoint = true;
                 }
                 pointPrev = pointCentral;
                 pointCentral = pointNext;
             }
             else
             {
-                breakPoint = true;
+                closingPoint = false;
             }
 
             pointNext = (pointNext + 1) % unvisitedVertex.size();
         }
 
-        /*for (int j = visitedVertex.size() - 1; j >= 0; j--)
+        for (int j = visitedVertex.size() - 1; j >= 0; j--)
         {
-            unvisitedVertex.erase(unvisitedVertex.begin() + visitedVertex[j]);
+            //unvisitedVertex.erase(unvisitedVertex.begin() + visitedVertex[j]);
         }
-        unvisitedVertex.shrink_to_fit();*/
+        unvisitedVertex.shrink_to_fit();
+    }
+
+    for (int i = concaveAngle.size() - 1; i >= 0; i--)
+    {
+        //unvisitedVertex.erase(unvisitedVertex.begin() + visitedVertex[j]);
+    }
+
+    polygonAssembly.push_back(position);
+
+    for (int i = 0; i < unvisitedVertex.size(); i++)
+    {
+        polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[unvisitedVertex[i]]);
     }
 
     //std::cout << "From convexPolygonSplit function, polygonAssembly.size() = " << polygonAssembly.size() << std::endl;
