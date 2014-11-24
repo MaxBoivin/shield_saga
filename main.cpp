@@ -731,6 +731,52 @@ std::vector <polygon> polygon::convexPolygonSplit()
 
     for (int i = 0; i < polygonAssembly.size(); i++)
     {
+        int pointNext = ((concaveAngle[(i)%concaveAngle.size()]+1)%unvisitedVertex.size());
+        int pointCentral = concaveAngle[(i)%concaveAngle.size()];
+        int pointPrev = (unvisitedVertex.size()-1+concaveAngle[(i)%concaveAngle.size()])%unvisitedVertex.size();
+
+        bool closingPoint = true;
+
+        for (int j = 0; j < unvisitedVertex.size(); j++)
+        {
+            if (unvisitedVertex[unvisitedVertex[pointNext]] >= 0 &&
+                threePointAngle(vertex[unvisitedVertex[pointNext]], vertex[unvisitedVertex[pointCentral]], vertex[unvisitedVertex[pointPrev]]) <= 180)
+            {
+                polygonAssembly[i].addVertex(vertex[unvisitedVertex[pointCentral]]);
+
+                if (!closingPoint)
+                {
+                    unvisitedVertex[pointCentral] = -1;
+                }
+                else
+                {
+                    closingPoint = false;
+                }
+
+                pointPrev = pointCentral;
+                pointCentral = pointNext;
+            }
+            else
+            {
+                closingPoint = true;
+            }
+
+            pointNext = (pointNext + 1) % unvisitedVertex.size();
+        }
+    }
+
+    polygonAssembly.push_back(position);
+
+    for (int i = 0; i < unvisitedVertex.size(); i++)
+    {
+        if ( unvisitedVertex[i] >= 0)
+        {
+            polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[unvisitedVertex[i]]);
+        }
+    }
+
+    /*for (int i = 0; i < polygonAssembly.size(); i++)
+    {
         std::vector <int> visitedVertex;
 
         int pointNext = ((concaveAngle[(i)%concaveAngle.size()]+1)%unvisitedVertex.size());
@@ -746,12 +792,14 @@ std::vector <polygon> polygon::convexPolygonSplit()
             //std::cout << "PointCentral: " << pointCentral << std::endl;
             //polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[pointCentral]);
 
-            if (threePointAngle(vertex[unvisitedVertex[pointNext]], vertex[unvisitedVertex[pointCentral]], vertex[unvisitedVertex[pointPrev]]) <= 180)
+            if (unvisitedVertex[i] <= 0 &&
+                threePointAngle(vertex[unvisitedVertex[pointNext]], vertex[unvisitedVertex[pointCentral]], vertex[unvisitedVertex[pointPrev]]) <= 180)
             {
                 polygonAssembly[i].addVertex(vertex[pointNext]);
                 if (closingPoint)
                 {
                     visitedVertex.push_back(unvisitedVertex[pointCentral]);
+                    unvisitedVertex[pointCentral] = -1;
                     std::cout << "Vertex needed to be removed: " << (unvisitedVertex[pointCentral]) << std::endl;
                 }
                 else
@@ -786,7 +834,7 @@ std::vector <polygon> polygon::convexPolygonSplit()
     for (int i = 0; i < unvisitedVertex.size(); i++)
     {
         polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[unvisitedVertex[i]]);
-    }
+    }*/
 
     //std::cout << "From convexPolygonSplit function, polygonAssembly.size() = " << polygonAssembly.size() << std::endl;
 
@@ -2461,7 +2509,7 @@ int main(int argc, char* argv[])
                     gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].draw(gRenderer);
                 }*/
 
-                for (int j = 0; j < split.size(); j++)
+                for (int j = 0; j < 7/*split.size()*/; j++)
                 {
                     SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * (j+1))%256, 0xFF + (33333 * (j+1))%256, 0xFF + (99999 * (j+1))%256, 0xFF );
                     split[j].draw(gRenderer);
