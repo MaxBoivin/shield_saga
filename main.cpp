@@ -691,7 +691,7 @@ void polygon::cleanPolygon()
         for (int j = 0; j < vertex.size(); j++)
         {
             if (pointOnVectorCheck(vertex[i % vertex.size()], vertex[(j) % vertex.size()], vertex[(j +1) % vertex.size()])
-                && i % vertex.size() != (j) % vertex.size() && i % vertex.size() != (j + 1) % vertex.size())
+                && i != j && i != (j + 1) % vertex.size())
             {
                 vertex.erase(vertex.begin() + i % vertex.size());
             }
@@ -705,23 +705,20 @@ std::vector <polygon> polygon::convexPolygonSplit()
 {
     std::vector <polygon> polygonAssembly;
     std::vector <int> concaveAngle;
-    //polygonAssembly.push_back(position);
-    //concaveAngle.push_back(0);
+    std::vector <int> closingPoint;
+    std::vector <bool> visitedVertex;
 
-    std::vector <int> unvisitedVertex;
+    //std::cout << "vertex.size() = " << vertex.size() << std::endl;
 
     for (int i = 0; i < vertex.size(); i++)
     {
-        unvisitedVertex.push_back(i);
-    }
-
-    for (int i = 0; i < unvisitedVertex.size(); i++)
-    {
-        if (threePointAngle(vertex[(unvisitedVertex[i]+1)%unvisitedVertex.size()], vertex[unvisitedVertex[i]], vertex[(unvisitedVertex.size()-1+i)%unvisitedVertex.size()]) > 180)
+        if (threePointAngle(vertex[(i+1)%vertex.size()], vertex[i], vertex[(vertex.size()-1+i)%vertex.size()]) > 180)
         {
             polygonAssembly.push_back(position);
             concaveAngle.push_back(i);
         }
+
+        visitedVertex.push_back(false);
     }
 
     if (polygonAssembly.size() > 1)
@@ -731,114 +728,61 @@ std::vector <polygon> polygon::convexPolygonSplit()
 
     for (int i = 0; i < polygonAssembly.size(); i++)
     {
-        int pointNext = ((concaveAngle[(i)%concaveAngle.size()]+1)%unvisitedVertex.size());
-        int pointCentral = concaveAngle[(i)%concaveAngle.size()];
-        int pointPrev = (unvisitedVertex.size()-1+concaveAngle[(i)%concaveAngle.size()])%unvisitedVertex.size();
+        int pointNext = ((concaveAngle[i]+1)%vertex.size());
+        int pointCentral = concaveAngle[i];
+        int pointPrev = (vertex.size()-1+concaveAngle[i])%vertex.size();
 
-        bool closingPoint = true;
-
-        for (int j = 0; j < unvisitedVertex.size(); j++)
+        for (int j = 0; j < vertex.size(); j++)
         {
-            if (unvisitedVertex[unvisitedVertex[pointNext]] >= 0 &&
-                threePointAngle(vertex[unvisitedVertex[pointNext]], vertex[unvisitedVertex[pointCentral]], vertex[unvisitedVertex[pointPrev]]) <= 180)
+            if (!visitedVertex[pointCentral] &&
+                threePointAngle(vertex[pointNext], vertex[pointCentral], vertex[pointPrev]) <= 180)
             {
-                polygonAssembly[i].addVertex(vertex[unvisitedVertex[pointCentral]]);
+                polygonAssembly[i].addVertex(vertex[pointCentral]);
 
-                if (!closingPoint)
+                if (pointCentral == concaveAngle[i])
                 {
-                    unvisitedVertex[pointCentral] = -1;
+                    closingPoint.push_back(pointNext);
                 }
                 else
                 {
-                    closingPoint = false;
+                    visitedVertex[pointCentral] = true;
                 }
 
                 pointPrev = pointCentral;
                 pointCentral = pointNext;
             }
-            else
-            {
-                closingPoint = true;
-            }
 
-            pointNext = (pointNext + 1) % unvisitedVertex.size();
+            pointNext = (pointNext + 1) % vertex.size();
         }
     }
 
     polygonAssembly.push_back(position);
 
-    for (int i = 0; i < unvisitedVertex.size(); i++)
+    /*for (int i = 0; i < concaveAngle.size(); i++)
     {
-        if ( unvisitedVertex[i] >= 0)
-        {
-            polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[unvisitedVertex[i]]);
-        }
-    }
+        polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[closingPoint[i]]);
+        polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[concaveAngle[i]]);
 
-    /*for (int i = 0; i < polygonAssembly.size(); i++)
-    {
-        std::vector <int> visitedVertex;
-
-        int pointNext = ((concaveAngle[(i)%concaveAngle.size()]+1)%unvisitedVertex.size());
-        int pointCentral = concaveAngle[(i)%concaveAngle.size()];
-        int pointPrev = (unvisitedVertex.size()-1+concaveAngle[(i)%concaveAngle.size()])%unvisitedVertex.size();
-
-        bool closingPoint = false;
-
-        std::cout << "Remaining vertex: " << unvisitedVertex.size() << std::endl;
-
-        for (int j = 0; j < unvisitedVertex.size(); j++)
-        {
-            //std::cout << "PointCentral: " << pointCentral << std::endl;
-            //polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[pointCentral]);
-
-            if (unvisitedVertex[i] <= 0 &&
-                threePointAngle(vertex[unvisitedVertex[pointNext]], vertex[unvisitedVertex[pointCentral]], vertex[unvisitedVertex[pointPrev]]) <= 180)
-            {
-                polygonAssembly[i].addVertex(vertex[pointNext]);
-                if (closingPoint)
-                {
-                    visitedVertex.push_back(unvisitedVertex[pointCentral]);
-                    unvisitedVertex[pointCentral] = -1;
-                    std::cout << "Vertex needed to be removed: " << (unvisitedVertex[pointCentral]) << std::endl;
-                }
-                else
-                {
-                    closingPoint = true;
-                }
-                pointPrev = pointCentral;
-                pointCentral = pointNext;
-            }
-            else
-            {
-                closingPoint = false;
-            }
-
-            pointNext = (pointNext + 1) % unvisitedVertex.size();
-        }
-
-        for (int j = visitedVertex.size() - 1; j >= 0; j--)
-        {
-            //unvisitedVertex.erase(unvisitedVertex.begin() + visitedVertex[j]);
-        }
-        unvisitedVertex.shrink_to_fit();
-    }
-
-    for (int i = concaveAngle.size() - 1; i >= 0; i--)
-    {
-        //unvisitedVertex.erase(unvisitedVertex.begin() + visitedVertex[j]);
-    }
-
-    polygonAssembly.push_back(position);
-
-    for (int i = 0; i < unvisitedVertex.size(); i++)
-    {
-        polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[unvisitedVertex[i]]);
+        visitedVertex[concaveAngle[i]] = true;
+        visitedVertex[closingPoint[i]] = true;
     }*/
+
+    for (int i = 0; i < vertex.size(); i++)
+    {
+        if ( !visitedVertex[i] )
+        {
+            polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[i]);
+        }
+    }
+
+    for (int i = 0; i < polygonAssembly.size(); i++)
+    {
+        polygonAssembly[i].cleanPolygon();
+    }
 
     //std::cout << "From convexPolygonSplit function, polygonAssembly.size() = " << polygonAssembly.size() << std::endl;
 
-    cleanPolygon();
+
 
     return polygonAssembly;
 }
@@ -2080,7 +2024,8 @@ bool pointOnVectorCheck(floatPoint point, floatPoint vecStart, floatPoint vecEnd
     bool pointIsOnVector = false;
 
     if (point.x <= fmax(vecStart.x, vecEnd.x) && point.x >= fmin(vecStart.x, vecEnd.x) &&
-        point.y <= fmax(vecStart.y, vecEnd.y) && point.y >= fmin(vecStart.y, vecEnd.y))
+        point.y <= fmax(vecStart.y, vecEnd.y) && point.y >= fmin(vecStart.y, vecEnd.y) &&
+        threePointOrientation(point, vecStart, vecEnd) == 0)
     {
         pointIsOnVector = true;
     }
@@ -2509,7 +2454,7 @@ int main(int argc, char* argv[])
                     gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].draw(gRenderer);
                 }*/
 
-                for (int j = 0; j < 7/*split.size()*/; j++)
+                for (int j = 0; j < 14/*split.size()*/; j++)
                 {
                     SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * (j+1))%256, 0xFF + (33333 * (j+1))%256, 0xFF + (99999 * (j+1))%256, 0xFF );
                     split[j].draw(gRenderer);
