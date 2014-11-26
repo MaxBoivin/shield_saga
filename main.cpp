@@ -758,19 +758,20 @@ std::vector <polygon> polygon::convexPolygonSplit()
 
     polygonAssembly.push_back(position);
 
-    /*for (int i = 0; i < concaveAngle.size(); i++)
+    for (int i = 0; i < concaveAngle.size(); i++)
     {
-        polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[closingPoint[i]]);
-        polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[concaveAngle[i]]);
+        //polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[closingPoint[i]]);
+        //polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[concaveAngle[i]]);
 
-        visitedVertex[concaveAngle[i]] = true;
-        visitedVertex[closingPoint[i]] = true;
-    }*/
+        visitedVertex[concaveAngle[i]] = false;
+        visitedVertex[closingPoint[i]] = false;
+    }
 
     for (int i = 0; i < vertex.size(); i++)
     {
         if ( !visitedVertex[i] )
         {
+            visitedVertex[i] = true;
             polygonAssembly[polygonAssembly.size()-1].addVertex(vertex[i]);
         }
     }
@@ -2454,7 +2455,7 @@ int main(int argc, char* argv[])
                     gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].draw(gRenderer);
                 }*/
 
-                for (int j = 0; j < 14/*split.size()*/; j++)
+                for (int j = 11; j < split.size(); j++)
                 {
                     SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * (j+1))%256, 0xFF + (33333 * (j+1))%256, 0xFF + (99999 * (j+1))%256, 0xFF );
                     split[j].draw(gRenderer);
