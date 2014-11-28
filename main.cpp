@@ -217,7 +217,9 @@ class polygon
 
         void cleanPolygon();
 
-        std::vector <polygon> convexPolygonSplit();
+        std::vector <polygon> convexDecomposition();
+
+        floatPoint satCollision(polygon Collider);
 
         void draw(SDL_Renderer* renderer);
 
@@ -701,7 +703,7 @@ void polygon::cleanPolygon()
     vertex.shrink_to_fit();
 }
 
-std::vector <polygon> polygon::convexPolygonSplit()
+std::vector <polygon> polygon::convexDecomposition()
 {
     std::vector <polygon> polygonAssembly;
     std::vector <int> concaveAngle;
@@ -775,6 +777,48 @@ std::vector <polygon> polygon::convexPolygonSplit()
     }
 
     return polygonAssembly;
+}
+
+floatPoint polygon::satCollision(polygon collider)
+{
+    floatPoint mtv = {0,0};
+
+    //I first need to create a perpendicular axis for every side of the two polygons
+    std::vector <floatPoint> axisStart;
+    std::vector <floatPoint> axisEnd;
+
+    for (int i = 0; i < vertex.size(); i++)
+    {
+        floatPoint vecStart = getVertexAbsPos(i);
+        floatPoint vecEnd = getVertexAbsPos((i+1)%vertex.size());
+        floatPoint normalStart = {vecEnd.y, vecStart.y};
+        floatPoint normalEnd = {vecEnd.x, vecStart.x};
+
+        normalStart = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,0}, floatPoint{SCREEN_WIDTH, 0});
+        normalEnd = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,0}, floatPoint{0, SCREEN_HEIGHT});
+
+        axisStart.push_back(normalStart);
+        axisEnd.push_back(normalEnd);
+    }
+    for (int i = 0; i < collider.vertex.size(); i++)
+    {
+        floatPoint vecStart = collider.getVertexAbsPos(i);
+        floatPoint vecEnd = collider.getVertexAbsPos((i+1)%collider.vertex.size());
+        floatPoint normalStart = {vecEnd.y, vecStart.y};
+        floatPoint normalEnd = {vecEnd.x, vecStart.x};
+
+        normalStart = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,0}, floatPoint{SCREEN_WIDTH, 0});
+        normalEnd = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,0}, floatPoint{0, SCREEN_HEIGHT});
+
+        axisStart.push_back(normalStart);
+        axisEnd.push_back(normalEnd);
+    }
+
+    //Now I need to project each shape on every axis
+
+
+    return mtv;
+
 }
 
 void polygon::addVertex(floatPoint newVertexRelPosisition)
@@ -1710,7 +1754,7 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
         for (int i = 0; i < fileCollisionPolygon.size(); i++)
         {
-            std::vector <polygon> tempColisionPolygon = fileCollisionPolygon[i].convexPolygonSplit();
+            std::vector <polygon> tempColisionPolygon = fileCollisionPolygon[i].convexDecomposition();
 
             for (int j = 0; j < tempColisionPolygon.size(); j++)
             {
