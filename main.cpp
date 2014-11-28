@@ -1526,27 +1526,7 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
         //Creating a vector of polygon of collision
 
-        /*for (int i = 0; i < mapSize.y; i++)
-        {
-            for (int j = 0; j < mapSize.x; j++)
-            {
-                //std::cout << "Looking up tile " << j << ", " << i << std::endl;
-                if (collisionMap[j][i] == BOX)
-                {
-                    intPoint startTile = {j,i};
-                    intPoint currTile = startTile;
-
-                    std::vector <intPoint> visitedTile;
-                    visitedTile.push_back(currTile);
-
-                    vCollisionPolygon.push_back((floatPoint){0,0});
-
-                    vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){currTile.x * MAP_TILE_WIDTH, currTile.y * MAP_TILE_HEIGHT});
-
-
-                }
-            }
-        }*/
+        std::vector <polygon> fileCollisionPolygon;
 
         for (int i = 0; i < mapSize.y; i++)
         {
@@ -1566,9 +1546,9 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                     std::vector <intPoint> visitedTile;
                     visitedTile.push_back(currTile);
 
-                    vCollisionPolygon.push_back((floatPoint){0,0});
+                    fileCollisionPolygon.push_back((floatPoint){0,0});
                     //std::cout << "There is now " << vCollisionPolygon.size() << " polygons in the collision array" << std::endl;
-                    vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){currTile.x * MAP_TILE_WIDTH, currTile.y * MAP_TILE_HEIGHT});
+                    fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){currTile.x * MAP_TILE_WIDTH, currTile.y * MAP_TILE_HEIGHT});
 
                     do
                     {
@@ -1585,16 +1565,16 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                         //std::cout << "This is a change of direction." << std::endl;
                                         if (prevDirection == 0)
                                         {
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){currTile.x * MAP_TILE_WIDTH, currTile.y * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){currTile.x * MAP_TILE_WIDTH, currTile.y * MAP_TILE_HEIGHT});
                                         }
                                         else if (prevDirection == 1)
                                         {
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
                                         }
                                         else if (prevDirection == 2)
                                         {
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){currTile.x * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){currTile.x * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
                                         }
                                     }
                                     prevDirection = 3;
@@ -1614,16 +1594,16 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                         //std::cout << "This is a change of direction." << std::endl;
                                         if (prevDirection == 1)
                                         {
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, currTile.y * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, currTile.y * MAP_TILE_HEIGHT});
                                         }
                                         else if (prevDirection == 2)
                                         {
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH, (currTile.y + 1 ) * MAP_TILE_HEIGHT});
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH, (currTile.y ) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH, (currTile.y + 1 ) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH, (currTile.y ) * MAP_TILE_HEIGHT});
                                         }
                                         else if (prevDirection == 3)
                                         {
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){currTile.x * MAP_TILE_WIDTH, (currTile.y ) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){currTile.x * MAP_TILE_WIDTH, (currTile.y ) * MAP_TILE_HEIGHT});
                                         }
                                     }
                                     prevDirection = 0;
@@ -1643,16 +1623,16 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                         //std::cout << "This is a change of direction." << std::endl;
                                         if (prevDirection == 2)
                                         {
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
                                         }
                                         else if (prevDirection == 3)
                                         {
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y) * MAP_TILE_HEIGHT});
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
                                         }
                                         else if (prevDirection == 0)
                                         {
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y ) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y ) * MAP_TILE_HEIGHT});
                                         }
                                     }
                                     prevDirection = 1;
@@ -1672,16 +1652,16 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                         //std::cout << "This is a change of direction." << std::endl;
                                         if (prevDirection == 3)
                                         {
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){currTile.x * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){currTile.x * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
                                         }
                                         else if (prevDirection == 0)
                                         {
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y ) * MAP_TILE_HEIGHT});
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x  + 1) * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y ) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x  + 1) * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
                                         }
                                         else if (prevDirection == 1)
                                         {
-                                            vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
+                                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH, (currTile.y + 1) * MAP_TILE_HEIGHT});
                                         }
                                     }
                                     prevDirection = 2;
@@ -1706,15 +1686,15 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
                     if (prevDirection == 2)
                     {
-                        vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH, (currTile.y + 1 ) * MAP_TILE_HEIGHT});
+                        fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH, (currTile.y + 1 ) * MAP_TILE_HEIGHT});
                     }
 
                     if (visitedTile.size() == 1)
                     {
                         //vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH, (currTile.y ) * MAP_TILE_HEIGHT});
-                        vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1 ) * MAP_TILE_WIDTH, (currTile.y ) * MAP_TILE_HEIGHT});
-                        vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1 ) * MAP_TILE_WIDTH, (currTile.y + 1 ) * MAP_TILE_HEIGHT});
-                        vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH, (currTile.y + 1 ) * MAP_TILE_HEIGHT});
+                        fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1 ) * MAP_TILE_WIDTH, (currTile.y ) * MAP_TILE_HEIGHT});
+                        fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1 ) * MAP_TILE_WIDTH, (currTile.y + 1 ) * MAP_TILE_HEIGHT});
+                        fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH, (currTile.y + 1 ) * MAP_TILE_HEIGHT});
                     }
 
                     for (int k = 0; k < visitedTile.size(); k++)
@@ -1723,10 +1703,21 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                         collisionMap[visitedTile[k].x][visitedTile[k].y] = NONE;
                     }
 
-                    vCollisionPolygon[vCollisionPolygon.size()-1].cleanPolygon();
+                    fileCollisionPolygon[fileCollisionPolygon.size()-1].cleanPolygon();
                 }
             }
         }
+
+        for (int i = 0; i < fileCollisionPolygon.size(); i++)
+        {
+            std::vector <polygon> tempColisionPolygon = fileCollisionPolygon[i].convexPolygonSplit();
+
+            for (int j = 0; j < tempColisionPolygon.size(); j++)
+            {
+                vCollisionPolygon.push_back(tempColisionPolygon[j]);
+            }
+        }
+
     }
     else
     {
@@ -2346,26 +2337,6 @@ int main(int argc, char* argv[])
         **********************/
         std::cout << "\n************\nFunction testing zone\n************\n\n";
 
-        std::vector <polygon> split;
-        for (int k = 0; k < WORLD_HEIGHT; k++)
-        {
-            for (int j = 0; j < WORLD_WIDTH; j++)
-            {
-                 for (int i = 0; i < gWorld[j][k].vCollisionPolygon.size();i++)
-                {
-                    //split.push_back(gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].position);
-                    std::vector <polygon> tempSplit = gWorld[j][k].vCollisionPolygon[i].convexPolygonSplit();
-
-                    for (int j = 0; j < tempSplit.size(); j++)
-                    {
-                        split.push_back(tempSplit[j]);
-                    }
-
-                    std::cout << "split size: " << split.size() << std::endl;
-                }
-            }
-        }
-
         std::cout << "\n************\nBack to regular programming!\n************\n\n";
 
         /*********************
@@ -2426,16 +2397,10 @@ int main(int argc, char* argv[])
                 charCollisionHack.draw(gRenderer);
 
 
-                /*for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size();i++)
+                for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size();i++)
                 {
                     SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * i)%256, 0xFF + (33333 * i)%256, 0xFF + (99999 * i)%256, 0xFF );
                     gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].draw(gRenderer);
-                }*/
-
-                for (int j = 0; j < 14/*split.size()*/; j++)
-                {
-                    SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * (j+1))%256, 0xFF + (33333 * (j+1))%256, 0xFF + (99999 * (j+1))%256, 0xFF );
-                    split[j].draw(gRenderer);
                 }
 
                 //std::cout << "Distance from character to mouse: " << evalDistance(gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y) << " Angle: " << gPlayer.angle << std::endl;
