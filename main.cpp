@@ -611,6 +611,8 @@ bool vectorCrossCheck(floatPoint vec1Start, floatPoint vec1End, floatPoint vec2S
 
 floatPoint vectorCrossPoint(floatPoint vec1Start, floatPoint vec1End, floatPoint vec2Start, floatPoint vec2End);
 
+floatPoint nearestPointOnVector(floatPoint point, floatPoint vec1Start, floatPoint vec1End);
+
 SDL_Texture* loadTexture(std::string path);
 
 bool loadTerrain();
@@ -2132,7 +2134,7 @@ floatPoint vectorCrossPoint(floatPoint vec1Start, floatPoint vec1End, floatPoint
 {
     floatPoint result = {-1, -1};
 
-    if (vectorCrossCheck(vec1Start, vec1End, vec2Start, vec2End))
+    if (true/*vectorCrossCheck(vec1Start, vec1End, vec2Start, vec2End)*/) //I took off the check to see is the point is in the limit of the vector.  Might cause problem down the line.
     {
         float tempA1 = vec1End.y - vec1Start.y;
         float tempB1 = vec1Start.x - vec1End.x;
@@ -2151,6 +2153,21 @@ floatPoint vectorCrossPoint(floatPoint vec1Start, floatPoint vec1End, floatPoint
         }
     }
     return result;
+}
+
+floatPoint nearestPointOnVector(floatPoint point, floatPoint vecStart, floatPoint vecEnd)
+{
+    floatPoint nearestPoint = vecStart;
+
+    float angleLineToWorld = atan2(vecEnd.y - vecStart.y, vecEnd.x - vecStart.x)*-180/PI;
+
+    float perpendicularAngle = (angleLineToWorld + 90);
+
+    floatPoint perpendicularPoint = {point.x + cos((perpendicularAngle)*PI/180)*100, point.y + sin((perpendicularAngle)*PI/-180)*100};
+
+    nearestPoint = vectorCrossPoint(vecStart, vecEnd, point, perpendicularPoint);
+
+    return nearestPoint;
 }
 
 bool renderText(std::string text, TTF_Font* font, int posX, int posY, SDL_Color textColor, int pointSize)
@@ -2381,6 +2398,19 @@ int main(int argc, char* argv[])
         **********************/
         std::cout << "\n************\nFunction testing zone\n************\n\n";
 
+        floatPoint tzPoint1 = {0, 0};
+        floatPoint tzVecStart = {10, 0};
+        floatPoint tzVecEnd = {0, 10};
+
+        floatPoint tzVectorCross = vectorCrossPoint(tzPoint1, (floatPoint){10, 10}, tzVecStart, tzVecEnd);
+
+        std::cout << "The vector cross at " << tzVectorCross.x << ", " << tzVectorCross.y << std::endl;
+
+        floatPoint tzTestPoint = nearestPointOnVector(tzPoint1, tzVecStart, tzVecEnd);
+
+        std::cout << "The point nearest to the point " << tzPoint1.x << ", " << tzPoint1.y << " on line " << tzVecStart.x << ", " << tzVecStart.y << " -> " << tzVecEnd.x << ", " << tzVecEnd.y << " is: " << (int)tzTestPoint.x << ", " << (int)tzTestPoint.y << std::endl;
+
+
         std::cout << "\n************\nBack to regular programming!\n************\n\n";
 
         /*********************
@@ -2435,6 +2465,25 @@ int main(int argc, char* argv[])
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
 
                 SDL_RenderDrawLine( gRenderer, gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y);
+
+                SDL_RenderDrawLine( gRenderer, 200, 10, 300, 800);
+
+                floatPoint tzAngleImaginaryLine = vectorCrossPoint(gPlayer.position, (floatPoint){gMouse.x, gMouse.y}, (floatPoint){200,10}, (floatPoint){300,800});
+
+                if (tzAngleImaginaryLine.x != -1 || tzAngleImaginaryLine.y != -1)
+                {
+                    SDL_SetRenderDrawColor( gRenderer, 0xFF, 0x00, 0x00, 0xFF );
+                    SDL_RenderDrawLine( gRenderer, gMouse.x, gMouse.y, tzAngleImaginaryLine.x, tzAngleImaginaryLine.y);
+                    //std::cout << "Line of sight cross with imaginary line at: " << tzAngleImaginaryLine.x << ", " << tzAngleImaginaryLine.y << std::endl;
+
+                    floatPoint tzNearest = nearestPointOnVector((floatPoint){gMouse.x, gMouse.y}, (floatPoint){200,10}, (floatPoint){300,800});
+
+                    SDL_SetRenderDrawColor( gRenderer, 0xFF, 0x00, 0xFF, 0xFF );
+
+                    SDL_RenderDrawLine( gRenderer, gMouse.x, gMouse.y, tzNearest.x, tzNearest.y);
+                }
+
+                SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
 
                 charCollisionHack.position = gPlayer.position;
                 charCollisionHack.rotation = gPlayer.angle;
