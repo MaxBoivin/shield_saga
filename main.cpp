@@ -525,6 +525,9 @@ class character
 
         float speed;
 
+        //Hack until I find a better way to do this.
+        polygon collision;
+
     private:
 
 };
@@ -611,7 +614,7 @@ bool vectorCrossCheck(floatPoint vec1Start, floatPoint vec1End, floatPoint vec2S
 
 floatPoint vectorCrossPoint(floatPoint vec1Start, floatPoint vec1End, floatPoint vec2Start, floatPoint vec2End);
 
-floatPoint nearestPointOnVector(floatPoint point, floatPoint vec1Start, floatPoint vec1End);
+floatPoint projectPointToVector(floatPoint point, floatPoint vec1Start, floatPoint vec1End);
 
 SDL_Texture* loadTexture(std::string path);
 
@@ -818,6 +821,100 @@ floatPoint polygon::satCollision(polygon collider)
 
     //Now I need to project each shape on every axis
 
+    for (int i = 0; i < axisStart.size(); i++)
+    {
+        floatPoint shape1Point1;
+        floatPoint shape1Point2;
+        float shape1Dist = 0;
+
+        floatPoint shape2Point1;
+        floatPoint shape2Point2;
+        float shape2Dist = 0;
+
+        for (int j = 0; j < vertex.size(); j++)
+        {
+            floatPoint tempPoint1 = projectPointToVector(getVertexAbsPos(j), axisStart[i], axisEnd[i]);
+
+            for (int k = 0; k < vertex.size(); k++)
+            {
+                floatPoint tempPoint2 = projectPointToVector(getVertexAbsPos(k), axisStart[i], axisEnd[i]);
+
+                float tempDist = evalDistance(tempPoint1, tempPoint2);
+
+                if (tempDist > shape1Dist)
+                {
+                    shape1Point1 = tempPoint1;
+                    shape1Point2 = tempPoint2;
+                    shape1Dist = tempDist;
+                }
+            }
+        }
+
+        for (int j = 0; j < collider.vertex.size(); j++)
+        {
+            floatPoint tempPoint1 = projectPointToVector(collider.getVertexAbsPos(j), axisStart[i], axisEnd[i]);
+
+            for (int k = 0; k < collider.vertex.size(); k++)
+            {
+                floatPoint tempPoint2 = projectPointToVector(collider.getVertexAbsPos(k), axisStart[i], axisEnd[i]);
+
+                float tempDist = evalDistance(tempPoint1, tempPoint2);
+
+                if (tempDist > shape2Dist)
+                {
+                    shape2Point1 = tempPoint1;
+                    shape2Point2 = tempPoint2;
+                    shape2Dist = tempDist;
+                }
+            }
+        }
+
+        floatPoint shape1Out;
+        floatPoint shape1In;
+        floatPoint shape2Out;
+        floatPoint shape2In;
+
+        if (fmax(evalDistance(shape1Point1, shape2Point1),evalDistance(shape1Point1, shape2Point2)) > fmax(evalDistance(shape1Point2, shape2Point1),evalDistance(shape1Point2, shape2Point2)))
+        {
+            shape1Out = shape1Point1;
+            shape1In = shape1Point2;
+        }
+        else
+        {
+            shape1Out = shape1Point2;
+            shape1In = shape1Point1;
+        }
+
+        if (fmax(evalDistance(shape2Point1, shape1Point1),evalDistance(shape2Point1, shape1Point2)) > fmax(evalDistance(shape2Point2, shape1Point1),evalDistance(shape2Point2, shape1Point2)))
+        {
+            shape2Out = shape2Point1;
+            shape2In = shape2Point2;
+        }
+        else
+        {
+            shape2Out = shape2Point2;
+            shape2In = shape2Point1;
+        }
+
+        if (evalDistance(shape1Out, shape2Out) < (shape1Dist + shape2Dist))
+        {
+            floatPoint tempMTV;
+
+            if (evalDistance(shape1In, shape2Out) < evalDistance(shape1Out, shape2In))
+            {
+                tempMTV = {(shape1In.x - shape2Out.x), (shape1In.y - shape2Out.y)};
+            }
+            else
+            {
+                tempMTV = {(shape2In.x - shape1Out.x), (shape2In.y - shape1Out.y)};
+
+            }
+            if ((mtv.x == 0 && mtv.y == 0) || (tempMTV.x < mtv.x && tempMTV.y < mtv.y))
+            {
+                mtv = tempMTV;
+            }
+        }
+    }
 
     return mtv;
 
@@ -1013,6 +1110,14 @@ void character::free()
 
     SDL_DestroyTexture(spriteSheet);
     spriteSheet = NULL;
+
+    //Collision hack
+    collision.position = position;
+    collision.rotation = angle;
+    collision.addVertex((floatPoint){4-24, 25-43});
+    collision.addVertex((floatPoint){40-24, 0-43});
+    collision.addVertex((floatPoint){46-24, 53-43});
+    collision.addVertex((floatPoint){4-24, 53-43});
 }
 
 void character::loadAnim()
@@ -1163,14 +1268,6 @@ collisionAxis player::checkCollisionTerrain(terrainMap currMap)
 
     float charRadius = fmin(MAP_TILE_HEIGHT, MAP_TILE_WIDTH)/2 - 2; //I added an arbitrary -2 just to give it some tolerance.
 
-    //Temporary hack
-    polygon charCollisionHack = position;
-    charCollisionHack.addVertex((floatPoint){4-24, 25-43});
-    charCollisionHack.addVertex((floatPoint){40-24, 0-43});
-    charCollisionHack.addVertex((floatPoint){46-24, 53-43});
-    charCollisionHack.addVertex((floatPoint){4-24, 53-43});
-    charCollisionHack.rotation = angle;
-
     for (int i = 0; i < currMap.vGate.size(); i++)
     {
         floatPoint gatePos = {(currMap.vGate[i].position.x * MAP_TILE_WIDTH + MAP_TILE_WIDTH/2), (currMap.vGate[i].position.y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT/2)};
@@ -1194,15 +1291,15 @@ collisionAxis player::checkCollisionTerrain(terrainMap currMap)
 
     for (int i = 0; i < currMap.vCollisionPolygon.size(); i++)
     {
-        for (int j = 0; j < charCollisionHack.getSideNumber(); j++)
+        for (int j = 0; j < collision.getSideNumber(); j++)
         {
             for ( int k = 0; k < currMap.vCollisionPolygon[i].getSideNumber(); k++)
             {
-                floatPoint crossPoint = (vectorCrossPoint(currMap.vCollisionPolygon[i].getVertexAbsPos(k), currMap.vCollisionPolygon[i].getVertexAbsPos((k+1)%currMap.vCollisionPolygon[i].getSideNumber()), charCollisionHack.getVertexAbsPos(j), charCollisionHack.getVertexAbsPos((j+1)%charCollisionHack.getSideNumber())));
-                //std::cout << "Character vertex number: " << j << " Coord: " << charCollisionHack.getVertexRelPos(j).x << ", " << charCollisionHack.getVertexRelPos(j).y << std::endl;
+                floatPoint crossPoint = (vectorCrossPoint(currMap.vCollisionPolygon[i].getVertexAbsPos(k), currMap.vCollisionPolygon[i].getVertexAbsPos((k+1)%currMap.vCollisionPolygon[i].getSideNumber()), collision.getVertexAbsPos(j), collision.getVertexAbsPos((j+1)%collision.getSideNumber())));
+                //std::cout << "Character vertex number: " << j << " Coord: " << collision.getVertexRelPos(j).x << ", " << collision.getVertexRelPos(j).y << std::endl;
                 if (crossPoint.x != -1 && crossPoint.y != -1)
                 {
-                    //floatPoint correction = {charCollisionHack.getVertexAbsPos(j).x - crossPoint.x, charCollisionHack.getVertexAbsPos(j).y - crossPoint.y};
+                    //floatPoint correction = {collision.getVertexAbsPos(j).x - crossPoint.x, collision.getVertexAbsPos(j).y - crossPoint.y};
                     //position.x = position.x - correction.x;
                     //position.y = position.y - correction.y;
                     //std::cout << "Collision point: " << crossPoint.x << ", " << crossPoint.y << std::endl;
@@ -1407,6 +1504,10 @@ void player::updatePos()
             break;
     }
 
+
+    //Collision hack
+    collision.position = position;
+    collision.rotation = angle;
 }
 
 mapGate::mapGate()
@@ -2155,7 +2256,7 @@ floatPoint vectorCrossPoint(floatPoint vec1Start, floatPoint vec1End, floatPoint
     return result;
 }
 
-floatPoint nearestPointOnVector(floatPoint point, floatPoint vecStart, floatPoint vecEnd)
+floatPoint projectPointToVector(floatPoint point, floatPoint vecStart, floatPoint vecEnd)
 {
     floatPoint nearestPoint = vecStart;
 
@@ -2380,14 +2481,6 @@ int main(int argc, char* argv[])
 	}
     else if ( loadWorld())
     {
-        //Temporary hack
-        polygon charCollisionHack = gPlayer.position;
-        charCollisionHack.addVertex((floatPoint){4-24, 25-43});
-        charCollisionHack.addVertex((floatPoint){40-24, 0-43});
-        charCollisionHack.addVertex((floatPoint){46-24, 53-43});
-        charCollisionHack.addVertex((floatPoint){4-24, 53-43});
-        charCollisionHack.rotation = gPlayer.angle;
-
         //Event handler
         SDL_Event e;
 
@@ -2406,7 +2499,7 @@ int main(int argc, char* argv[])
 
         std::cout << "The vector cross at " << tzVectorCross.x << ", " << tzVectorCross.y << std::endl;
 
-        floatPoint tzTestPoint = nearestPointOnVector(tzPoint1, tzVecStart, tzVecEnd);
+        floatPoint tzTestPoint = projectPointToVector(tzPoint1, tzVecStart, tzVecEnd);
 
         std::cout << "The point nearest to the point " << tzPoint1.x << ", " << tzPoint1.y << " on line " << tzVecStart.x << ", " << tzVecStart.y << " -> " << tzVecEnd.x << ", " << tzVecEnd.y << " is: " << (int)tzTestPoint.x << ", " << (int)tzTestPoint.y << std::endl;
 
@@ -2466,9 +2559,17 @@ int main(int argc, char* argv[])
 
                 SDL_RenderDrawLine( gRenderer, gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y);
 
-                SDL_RenderDrawLine( gRenderer, 200, 10, 300, 800);
+                //**********Some debug hack.**********
 
-                floatPoint tzAngleImaginaryLine = vectorCrossPoint(gPlayer.position, (floatPoint){gMouse.x, gMouse.y}, (floatPoint){200,10}, (floatPoint){300,800});
+                /*polygon tzLine = (floatPoint){0,0};
+
+                tzLine.addVertex((floatPoint){200,10});
+
+                tzLine.addVertex((floatPoint){300, 800});
+
+                SDL_RenderDrawLine( gRenderer, tzLine.getVertexAbsPos(0).x, tzLine.getVertexAbsPos(0).y, tzLine.getVertexAbsPos(1).x, tzLine.getVertexAbsPos(1).y );
+
+                floatPoint tzAngleImaginaryLine = vectorCrossPoint(gPlayer.position, (floatPoint){gMouse.x, gMouse.y}, tzLine.getVertexAbsPos(0), tzLine.getVertexAbsPos(1));
 
                 if (tzAngleImaginaryLine.x != -1 || tzAngleImaginaryLine.y != -1)
                 {
@@ -2476,27 +2577,53 @@ int main(int argc, char* argv[])
                     SDL_RenderDrawLine( gRenderer, gMouse.x, gMouse.y, tzAngleImaginaryLine.x, tzAngleImaginaryLine.y);
                     //std::cout << "Line of sight cross with imaginary line at: " << tzAngleImaginaryLine.x << ", " << tzAngleImaginaryLine.y << std::endl;
 
-                    floatPoint tzNearest = nearestPointOnVector((floatPoint){gMouse.x, gMouse.y}, (floatPoint){200,10}, (floatPoint){300,800});
+                    floatPoint tzNearest = projectPointToVector((floatPoint){gMouse.x, gMouse.y}, tzLine.getVertexAbsPos(0), tzLine.getVertexAbsPos(1));
 
                     SDL_SetRenderDrawColor( gRenderer, 0xFF, 0x00, 0xFF, 0xFF );
 
                     SDL_RenderDrawLine( gRenderer, gMouse.x, gMouse.y, tzNearest.x, tzNearest.y);
+                }*/
+
+                polygon tzBox = (floatPoint){200, 200};
+
+                tzBox.addVertex((floatPoint){-100, -100});
+                tzBox.addVertex((floatPoint){-100, 100});
+                tzBox.addVertex((floatPoint){100, 100});
+                tzBox.addVertex((floatPoint){100, -100});
+                tzBox.rotation = 45;
+
+                tzBox.draw(gRenderer);
+
+                floatPoint tzVecStart = tzBox.getVertexAbsPos(1);
+                floatPoint tzVecEnd = tzBox.getVertexAbsPos((1+1)%tzBox.getSideNumber());
+                floatPoint tzNormalStart = {tzVecEnd.y, tzVecStart.y};
+                floatPoint tzNormalEnd = {tzVecEnd.x, tzVecStart.x};
+
+                tzNormalStart = vectorCrossPoint(tzNormalStart, tzNormalEnd, floatPoint{0,0}, floatPoint{SCREEN_WIDTH, 0});
+                tzNormalEnd = vectorCrossPoint(tzNormalStart, tzNormalEnd, floatPoint{SCREEN_WIDTH,0}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
+
+                SDL_SetRenderDrawColor( gRenderer, 0xFF, 0x00, 0x00, 0xFF );
+
+                SDL_RenderDrawLine( gRenderer, tzNormalStart.x, tzNormalStart.y, tzNormalEnd.x, tzNormalEnd.y);
+
+                floatPoint tzMTV = gPlayer.collision.satCollision(tzBox);
+
+                if (tzMTV.x != 0 && tzMTV.y != 0)
+                {
+                    //std::cout << "Character colliding with the line.  MTV: " << tzMTV.x << ", " << tzMTV.y << std::endl;
                 }
 
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
 
-                charCollisionHack.position = gPlayer.position;
-                charCollisionHack.rotation = gPlayer.angle;
-                charCollisionHack.draw(gRenderer);
+                gPlayer.collision.draw(gRenderer);
 
-
-                for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size();i++)
+                /*for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size();i++)
                 {
                     SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * i)%256, 0xFF + (33333 * i)%256, 0xFF + (99999 * i)%256, 0xFF );
                     gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].draw(gRenderer);
                 }
 
-                //std::cout << "Distance from character to mouse: " << evalDistance(gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y) << " Angle: " << gPlayer.angle << std::endl;
+                 //**********End of debug hack.**********/
 
                 //Update screen
                 SDL_RenderPresent( gRenderer );
