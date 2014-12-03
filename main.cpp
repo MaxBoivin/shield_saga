@@ -796,11 +796,19 @@ floatPoint polygon::satCollision(polygon collider)
     {
         floatPoint vecStart = getVertexAbsPos(i);
         floatPoint vecEnd = getVertexAbsPos((i+1)%vertex.size());
-        floatPoint normalStart = {vecEnd.y, vecStart.y};
-        floatPoint normalEnd = {vecEnd.x, vecStart.x};
+        floatPoint normalStart = {vecStart.x + (vecEnd.x - vecStart.x)/2, vecStart.y + (vecEnd.y - vecStart.y)/2};
+        floatPoint normalEnd = {normalStart.x + (vecEnd.y - vecStart.y), normalStart.y + (vecStart.x - vecEnd.x)};
 
-        normalStart = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,0}, floatPoint{SCREEN_WIDTH, 0});
-        normalEnd = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,0}, floatPoint{0, SCREEN_HEIGHT});
+        if (normalStart.y == normalEnd.y)
+        {
+            normalStart = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,0}, floatPoint{0, SCREEN_HEIGHT});
+            normalEnd = vectorCrossPoint(normalStart, normalEnd, floatPoint{SCREEN_WIDTH,0}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
+        }
+        else
+        {
+            normalStart = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,0}, floatPoint{SCREEN_WIDTH, 0});
+            normalEnd = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,SCREEN_HEIGHT}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
+        }
 
         axisStart.push_back(normalStart);
         axisEnd.push_back(normalEnd);
@@ -2491,18 +2499,27 @@ int main(int argc, char* argv[])
         **********************/
         std::cout << "\n************\nFunction testing zone\n************\n\n";
 
-        floatPoint tzPoint1 = {0, 0};
-        floatPoint tzVecStart = {10, 0};
-        floatPoint tzVecEnd = {0, 10};
+        polygon tzBox = (floatPoint){200, 200};
 
-        floatPoint tzVectorCross = vectorCrossPoint(tzPoint1, (floatPoint){10, 10}, tzVecStart, tzVecEnd);
+        tzBox.addVertex((floatPoint){-100, -100});
+        tzBox.addVertex((floatPoint){-100, 100});
+        tzBox.addVertex((floatPoint){100, 100});
+        tzBox.addVertex((floatPoint){100, -100});
+        tzBox.rotation = 195;
 
-        std::cout << "The vector cross at " << tzVectorCross.x << ", " << tzVectorCross.y << std::endl;
+        floatPoint tzNormalStart = {tzBox.getVertexAbsPos(0).x + (tzBox.getVertexAbsPos(1).x - tzBox.getVertexAbsPos(0).x)/2, tzBox.getVertexAbsPos(0).y + (tzBox.getVertexAbsPos(1).y - tzBox.getVertexAbsPos(0).y)/2};
+        floatPoint tzNormalEnd = {tzNormalStart.x + (tzBox.getVertexAbsPos(1).y-tzBox.getVertexAbsPos(0).y), tzNormalStart.y + (tzBox.getVertexAbsPos(0).x-tzBox.getVertexAbsPos(1).x)};
 
-        floatPoint tzTestPoint = projectPointToVector(tzPoint1, tzVecStart, tzVecEnd);
-
-        std::cout << "The point nearest to the point " << tzPoint1.x << ", " << tzPoint1.y << " on line " << tzVecStart.x << ", " << tzVecStart.y << " -> " << tzVecEnd.x << ", " << tzVecEnd.y << " is: " << (int)tzTestPoint.x << ", " << (int)tzTestPoint.y << std::endl;
-
+        if (tzNormalStart.y == tzNormalEnd.y)
+        {
+            tzNormalStart = vectorCrossPoint(tzNormalStart, tzNormalEnd, floatPoint{0,0}, floatPoint{0, SCREEN_HEIGHT});
+            tzNormalEnd = vectorCrossPoint(tzNormalStart, tzNormalEnd, floatPoint{SCREEN_WIDTH,0}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
+        }
+        else
+        {
+            tzNormalStart = vectorCrossPoint(tzNormalStart, tzNormalEnd, floatPoint{0,0}, floatPoint{SCREEN_WIDTH, 0});
+            tzNormalEnd = vectorCrossPoint(tzNormalStart, tzNormalEnd, floatPoint{0,SCREEN_HEIGHT}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
+        }
 
         std::cout << "\n************\nBack to regular programming!\n************\n\n";
 
@@ -2584,23 +2601,7 @@ int main(int argc, char* argv[])
                     SDL_RenderDrawLine( gRenderer, gMouse.x, gMouse.y, tzNearest.x, tzNearest.y);
                 }*/
 
-                polygon tzBox = (floatPoint){200, 200};
-
-                tzBox.addVertex((floatPoint){-100, -100});
-                tzBox.addVertex((floatPoint){-100, 100});
-                tzBox.addVertex((floatPoint){100, 100});
-                tzBox.addVertex((floatPoint){100, -100});
-                tzBox.rotation = 45;
-
                 tzBox.draw(gRenderer);
-
-                floatPoint tzVecStart = tzBox.getVertexAbsPos(1);
-                floatPoint tzVecEnd = tzBox.getVertexAbsPos((1+1)%tzBox.getSideNumber());
-                floatPoint tzNormalStart = {tzVecEnd.y, tzVecStart.y};
-                floatPoint tzNormalEnd = {tzVecEnd.x, tzVecStart.x};
-
-                tzNormalStart = vectorCrossPoint(tzNormalStart, tzNormalEnd, floatPoint{0,0}, floatPoint{SCREEN_WIDTH, 0});
-                tzNormalEnd = vectorCrossPoint(tzNormalStart, tzNormalEnd, floatPoint{SCREEN_WIDTH,0}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
 
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0x00, 0x00, 0xFF );
 
