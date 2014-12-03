@@ -786,11 +786,12 @@ std::vector <polygon> polygon::convexDecomposition()
 
 floatPoint polygon::satCollision(polygon collider)
 {
-    floatPoint mtv = {0,0};
+    floatPoint mtv = {SCREEN_WIDTH, SCREEN_HEIGHT};
 
     //I first need to create a perpendicular axis for every side of the two polygons
     std::vector <floatPoint> axisStart;
     std::vector <floatPoint> axisEnd;
+    std::vector <floatPoint> tempMTV;
 
     for (int i = 0; i < vertex.size(); i++)
     {
@@ -817,11 +818,19 @@ floatPoint polygon::satCollision(polygon collider)
     {
         floatPoint vecStart = collider.getVertexAbsPos(i);
         floatPoint vecEnd = collider.getVertexAbsPos((i+1)%collider.vertex.size());
-        floatPoint normalStart = {vecEnd.y, vecStart.y};
-        floatPoint normalEnd = {vecEnd.x, vecStart.x};
+        floatPoint normalStart = {vecStart.x + (vecEnd.x - vecStart.x)/2, vecStart.y + (vecEnd.y - vecStart.y)/2};
+        floatPoint normalEnd = {normalStart.x + (vecEnd.y - vecStart.y), normalStart.y + (vecStart.x - vecEnd.x)};
 
-        normalStart = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,0}, floatPoint{SCREEN_WIDTH, 0});
-        normalEnd = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,0}, floatPoint{0, SCREEN_HEIGHT});
+        if (normalStart.y == normalEnd.y)
+        {
+            normalStart = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,0}, floatPoint{0, SCREEN_HEIGHT});
+            normalEnd = vectorCrossPoint(normalStart, normalEnd, floatPoint{SCREEN_WIDTH,0}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
+        }
+        else
+        {
+            normalStart = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,0}, floatPoint{SCREEN_WIDTH, 0});
+            normalEnd = vectorCrossPoint(normalStart, normalEnd, floatPoint{0,SCREEN_HEIGHT}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
+        }
 
         axisStart.push_back(normalStart);
         axisEnd.push_back(normalEnd);
@@ -831,12 +840,12 @@ floatPoint polygon::satCollision(polygon collider)
 
     for (int i = 0; i < axisStart.size(); i++)
     {
-        floatPoint shape1Point1;
-        floatPoint shape1Point2;
+        floatPoint shape1Point1 = {0,0};
+        floatPoint shape1Point2 = {0,0};
         float shape1Dist = 0;
 
-        floatPoint shape2Point1;
-        floatPoint shape2Point2;
+        floatPoint shape2Point1 = {0,0};
+        floatPoint shape2Point2 = {0,0};
         float shape2Dist = 0;
 
         for (int j = 0; j < vertex.size(); j++)
@@ -877,52 +886,45 @@ floatPoint polygon::satCollision(polygon collider)
             }
         }
 
-        floatPoint shape1Out;
-        floatPoint shape1In;
-        floatPoint shape2Out;
-        floatPoint shape2In;
+        float distS1P1S2P1 = evalDistance(shape1Point1, shape2Point1);
+        float distS1P1S2P2 = evalDistance(shape1Point1, shape2Point2);
+        float distS1P2S2P1 = evalDistance(shape1Point2, shape2Point1);
+        float distS1P2S2P2 = evalDistance(shape1Point2, shape2Point2);
 
-        if (fmax(evalDistance(shape1Point1, shape2Point1),evalDistance(shape1Point1, shape2Point2)) > fmax(evalDistance(shape1Point2, shape2Point1),evalDistance(shape1Point2, shape2Point2)))
+        float maxDistance = fmax(fmax(distS1P1S2P1, distS1P1S2P2),fmax(distS1P2S2P1, distS1P2S2P2));
+
+        if (shape1Dist + shape2Dist < maxDistance)
         {
-            shape1Out = shape1Point1;
-            shape1In = shape1Point2;
+            if (distS1P1S2P1 >= distS1P1S2P2 && distS1P1S2P1 >= distS1P2S2P1 && distS1P1S2P1 >= distS1P2S2P2)
+            {
+                //floatPoint tempLoopMTV((floatPoint){shape2Point1.x - shape1Point1.x, shape2Point1.y - shape1Point1.y});
+            }
+            else if (distS1P1S2P2 >= distS1P1S2P1 && distS1P1S2P2 >= distS1P2S2P1 && distS1P1S2P2 >= distS1P2S2P2)
+            {
+                //floatPoint tempLoopMTV((floatPoint){shape2Point2.x - shape1Point1.x, shape2Point2.y - shape1Point1.y});
+            }
+            else if (distS1P2S2P1 >= distS1P1S2P1 && distS1P2S2P1 >= distS1P1S2P2 && distS1P2S2P1 >= distS1P2S2P2)
+            {
+                //floatPoint tempLoopMTV((floatPoint){shape2Point1.x - shape1Point2.x, shape2Point1.y - shape1Point2.y});
+            }
+            else if (distS1P2S2P2 >= distS1P1S2P1 && distS1P2S2P2 >= distS1P1S2P2 && distS1P2S2P2 >= distS1P2S2P1)
+            {
+                //floatPoint tempLoopMTV((floatPoint){shape2Point2.x - shape1Point2.x, shape2Point2.y - shape1Point2.y});
+            }
         }
         else
         {
-            shape1Out = shape1Point2;
-            shape1In = shape1Point1;
-        }
-
-        if (fmax(evalDistance(shape2Point1, shape1Point1),evalDistance(shape2Point1, shape1Point2)) > fmax(evalDistance(shape2Point2, shape1Point1),evalDistance(shape2Point2, shape1Point2)))
-        {
-            shape2Out = shape2Point1;
-            shape2In = shape2Point2;
-        }
-        else
-        {
-            shape2Out = shape2Point2;
-            shape2In = shape2Point1;
-        }
-
-        if (evalDistance(shape1Out, shape2Out) < (shape1Dist + shape2Dist))
-        {
-            floatPoint tempMTV;
-
-            if (evalDistance(shape1In, shape2Out) < evalDistance(shape1Out, shape2In))
-            {
-                tempMTV = {(shape1In.x - shape2Out.x), (shape1In.y - shape2Out.y)};
-            }
-            else
-            {
-                tempMTV = {(shape2In.x - shape1Out.x), (shape2In.y - shape1Out.y)};
-
-            }
-            if ((mtv.x == 0 && mtv.y == 0) || (tempMTV.x < mtv.x && tempMTV.y < mtv.y))
-            {
-                mtv = tempMTV;
-            }
+            return mtv = {0,0};
         }
     }
+
+    /*for (int i = 0; i < tempMTV.size(); i++)
+    {
+        if (evalDistance(tempMTV[i], (floatPoint){0,0}) < evalDistance(mtv, (floatPoint){0,0}))
+        {
+            mtv = tempMTV[i];
+        }
+    }*/
 
     return mtv;
 
@@ -2505,21 +2507,40 @@ int main(int argc, char* argv[])
         tzBox.addVertex((floatPoint){-100, 100});
         tzBox.addVertex((floatPoint){100, 100});
         tzBox.addVertex((floatPoint){100, -100});
-        tzBox.rotation = 195;
+        tzBox.rotation = 15;
 
-        floatPoint tzNormalStart = {tzBox.getVertexAbsPos(0).x + (tzBox.getVertexAbsPos(1).x - tzBox.getVertexAbsPos(0).x)/2, tzBox.getVertexAbsPos(0).y + (tzBox.getVertexAbsPos(1).y - tzBox.getVertexAbsPos(0).y)/2};
-        floatPoint tzNormalEnd = {tzNormalStart.x + (tzBox.getVertexAbsPos(1).y-tzBox.getVertexAbsPos(0).y), tzNormalStart.y + (tzBox.getVertexAbsPos(0).x-tzBox.getVertexAbsPos(1).x)};
+        floatPoint tzNormal1Start = {tzBox.getVertexAbsPos(0).x + (tzBox.getVertexAbsPos(1).x - tzBox.getVertexAbsPos(0).x)/2, tzBox.getVertexAbsPos(0).y + (tzBox.getVertexAbsPos(1).y - tzBox.getVertexAbsPos(0).y)/2};
+        floatPoint tzNormal1End = {tzNormal1Start.x + (tzBox.getVertexAbsPos(1).y-tzBox.getVertexAbsPos(0).y), tzNormal1Start.y + (tzBox.getVertexAbsPos(0).x-tzBox.getVertexAbsPos(1).x)};
 
-        if (tzNormalStart.y == tzNormalEnd.y)
+        if (tzNormal1Start.y == tzNormal1End.y)
         {
-            tzNormalStart = vectorCrossPoint(tzNormalStart, tzNormalEnd, floatPoint{0,0}, floatPoint{0, SCREEN_HEIGHT});
-            tzNormalEnd = vectorCrossPoint(tzNormalStart, tzNormalEnd, floatPoint{SCREEN_WIDTH,0}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
+            tzNormal1Start = vectorCrossPoint(tzNormal1Start, tzNormal1End, floatPoint{0,0}, floatPoint{0, SCREEN_HEIGHT});
+            tzNormal1End = vectorCrossPoint(tzNormal1Start, tzNormal1End, floatPoint{SCREEN_WIDTH,0}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
         }
         else
         {
-            tzNormalStart = vectorCrossPoint(tzNormalStart, tzNormalEnd, floatPoint{0,0}, floatPoint{SCREEN_WIDTH, 0});
-            tzNormalEnd = vectorCrossPoint(tzNormalStart, tzNormalEnd, floatPoint{0,SCREEN_HEIGHT}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
+            tzNormal1Start = vectorCrossPoint(tzNormal1Start, tzNormal1End, floatPoint{0,0}, floatPoint{SCREEN_WIDTH, 0});
+            tzNormal1End = vectorCrossPoint(tzNormal1Start, tzNormal1End, floatPoint{0,SCREEN_HEIGHT}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
         }
+
+        floatPoint tzNormal2Start = {tzBox.getVertexAbsPos(1).x + (tzBox.getVertexAbsPos(2).x - tzBox.getVertexAbsPos(1).x)/2, tzBox.getVertexAbsPos(2).y + (tzBox.getVertexAbsPos(2).y - tzBox.getVertexAbsPos(1).y)/2};
+        floatPoint tzNormal2End = {tzNormal2Start.x + (tzBox.getVertexAbsPos(2).y-tzBox.getVertexAbsPos(1).y), tzNormal2Start.y + (tzBox.getVertexAbsPos(1).x-tzBox.getVertexAbsPos(2).x)};
+
+        if (tzNormal2Start.y == tzNormal2End.y)
+        {
+            tzNormal2Start = vectorCrossPoint(tzNormal2Start, tzNormal2End, floatPoint{0,0}, floatPoint{0, SCREEN_HEIGHT});
+            tzNormal2End = vectorCrossPoint(tzNormal2Start, tzNormal2End, floatPoint{SCREEN_WIDTH,0}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
+        }
+        else
+        {
+            tzNormal2Start = vectorCrossPoint(tzNormal2Start, tzNormal2End, floatPoint{0,0}, floatPoint{SCREEN_WIDTH, 0});
+            tzNormal2End = vectorCrossPoint(tzNormal2Start, tzNormal2End, floatPoint{0,SCREEN_HEIGHT}, floatPoint{SCREEN_WIDTH, SCREEN_HEIGHT});
+        }
+
+        floatPoint tzMaxCollision1 = {0,0};
+        floatPoint tzMaxCollision2 = {0,0};
+        floatPoint tzCollisionPorjection1 = {0,0};
+        floatPoint tzCollisionPorjection2 = {0,0};
 
         std::cout << "\n************\nBack to regular programming!\n************\n\n";
 
@@ -2605,13 +2626,55 @@ int main(int argc, char* argv[])
 
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0x00, 0x00, 0xFF );
 
-                SDL_RenderDrawLine( gRenderer, tzNormalStart.x, tzNormalStart.y, tzNormalEnd.x, tzNormalEnd.y);
+                SDL_RenderDrawLine( gRenderer, tzNormal1Start.x, tzNormal1Start.y, tzNormal1End.x, tzNormal1End.y);
+
+                SDL_RenderDrawLine( gRenderer, tzNormal2Start.x, tzNormal2Start.y, tzNormal2End.x, tzNormal2End.y);
+
+                tzCollisionPorjection1 = {0,0};
+                tzCollisionPorjection2 = {0,0};
+
+                for (int i = 0; i < gPlayer.collision.getSideNumber(); i++)
+                {
+                    for (int j = 0; j < gPlayer.collision.getSideNumber(); j++)
+                    {
+                        if(evalDistance(projectPointToVector(gPlayer.collision.getVertexAbsPos(i), tzNormal1Start, tzNormal1End), projectPointToVector(gPlayer.collision.getVertexAbsPos(j), tzNormal1Start, tzNormal1End)) > evalDistance(tzCollisionPorjection1, tzCollisionPorjection2))
+                        {
+                            tzCollisionPorjection1 = projectPointToVector(gPlayer.collision.getVertexAbsPos(i), tzNormal1Start, tzNormal1End);
+                            tzCollisionPorjection2 = projectPointToVector(gPlayer.collision.getVertexAbsPos(j), tzNormal1Start, tzNormal1End);
+                            tzMaxCollision1 = gPlayer.collision.getVertexAbsPos(i);
+                            tzMaxCollision2 = gPlayer.collision.getVertexAbsPos(j);
+                        }
+                    }
+                }
+
+                SDL_RenderDrawLine( gRenderer, tzMaxCollision1.x, tzMaxCollision1.y, tzCollisionPorjection1.x, tzCollisionPorjection1.y);
+                SDL_RenderDrawLine( gRenderer, tzMaxCollision2.x, tzMaxCollision2.y, tzCollisionPorjection2.x, tzCollisionPorjection2.y);
+
+                tzCollisionPorjection1 = {0,0};
+                tzCollisionPorjection2 = {0,0};
+
+                for (int i = 0; i < gPlayer.collision.getSideNumber(); i++)
+                {
+                    for (int j = 0; j < gPlayer.collision.getSideNumber(); j++)
+                    {
+                        if(evalDistance(projectPointToVector(gPlayer.collision.getVertexAbsPos(i), tzNormal2Start, tzNormal2End), projectPointToVector(gPlayer.collision.getVertexAbsPos(j), tzNormal2Start, tzNormal2End)) > evalDistance(tzCollisionPorjection1, tzCollisionPorjection2))
+                        {
+                            tzCollisionPorjection1 = projectPointToVector(gPlayer.collision.getVertexAbsPos(i), tzNormal2Start, tzNormal2End);
+                            tzCollisionPorjection2 = projectPointToVector(gPlayer.collision.getVertexAbsPos(j), tzNormal2Start, tzNormal2End);
+                            tzMaxCollision1 = gPlayer.collision.getVertexAbsPos(i);
+                            tzMaxCollision2 = gPlayer.collision.getVertexAbsPos(j);
+                        }
+                    }
+                }
+
+                SDL_RenderDrawLine( gRenderer, tzMaxCollision1.x, tzMaxCollision1.y, tzCollisionPorjection1.x, tzCollisionPorjection1.y);
+                SDL_RenderDrawLine( gRenderer, tzMaxCollision2.x, tzMaxCollision2.y, tzCollisionPorjection2.x, tzCollisionPorjection2.y);
 
                 floatPoint tzMTV = gPlayer.collision.satCollision(tzBox);
 
                 if (tzMTV.x != 0 && tzMTV.y != 0)
                 {
-                    //std::cout << "Character colliding with the line.  MTV: " << tzMTV.x << ", " << tzMTV.y << std::endl;
+                    std::cout << "Character colliding with the line.  MTV: " << tzMTV.x << ", " << tzMTV.y << std::endl;
                 }
 
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
