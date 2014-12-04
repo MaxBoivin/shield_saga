@@ -814,7 +814,7 @@ floatPoint polygon::satCollision(polygon collider)
         axisStart.push_back(normalStart);
         axisEnd.push_back(normalEnd);
     }
-    for (int i = 0; i < collider.vertex.size(); i++)
+    for (int i = 0; i < collider.getSideNumber(); i++)
     {
         floatPoint vecStart = collider.getVertexAbsPos(i);
         floatPoint vecEnd = collider.getVertexAbsPos((i+1)%collider.vertex.size());
@@ -834,6 +834,12 @@ floatPoint polygon::satCollision(polygon collider)
 
         axisStart.push_back(normalStart);
         axisEnd.push_back(normalEnd);
+    }
+
+    //Debug display
+    for (int i = 0; i < axisStart.size(); i++)
+    {
+        SDL_RenderDrawLine(gRenderer, axisStart[i].x, axisStart[i].y, axisEnd[i].x, axisEnd[i].y);
     }
 
     //Now I need to project each shape on every axis
@@ -867,11 +873,11 @@ floatPoint polygon::satCollision(polygon collider)
             }
         }
 
-        for (int j = 0; j < collider.vertex.size(); j++)
+        for (int j = 0; j < collider.getSideNumber(); j++)
         {
             floatPoint tempPoint1 = projectPointToVector(collider.getVertexAbsPos(j), axisStart[i], axisEnd[i]);
 
-            for (int k = 0; k < collider.vertex.size(); k++)
+            for (int k = 0; k < collider.getSideNumber(); k++)
             {
                 floatPoint tempPoint2 = projectPointToVector(collider.getVertexAbsPos(k), axisStart[i], axisEnd[i]);
 
@@ -885,6 +891,12 @@ floatPoint polygon::satCollision(polygon collider)
                 }
             }
         }
+
+        //Debug display
+        SDL_SetRenderDrawColor(gRenderer, 0xFF, 0x00, 0xFF, 0xFF);
+        SDL_RenderDrawLine(gRenderer, shape1Point1.x, shape1Point1.y, shape1Point2.x, shape1Point2.y);
+        SDL_SetRenderDrawColor(gRenderer, 0x00, 0xFF, 0xFF, 0xFF);
+        SDL_RenderDrawLine(gRenderer, shape2Point1.x, shape2Point1.y, shape2Point2.x, shape2Point2.y);
 
         float distS1P1S2P1 = evalDistance(shape1Point1, shape2Point1);
         float distS1P1S2P2 = evalDistance(shape1Point1, shape2Point2);
@@ -2524,7 +2536,7 @@ int main(int argc, char* argv[])
         }
 
         floatPoint tzNormal2Start = {tzBox.getVertexAbsPos(1).x + (tzBox.getVertexAbsPos(2).x - tzBox.getVertexAbsPos(1).x)/2, tzBox.getVertexAbsPos(2).y + (tzBox.getVertexAbsPos(2).y - tzBox.getVertexAbsPos(1).y)/2};
-        floatPoint tzNormal2End = {tzNormal2Start.x + (tzBox.getVertexAbsPos(2).y-tzBox.getVertexAbsPos(1).y), tzNormal2Start.y + (tzBox.getVertexAbsPos(1).x-tzBox.getVertexAbsPos(2).x)};
+        floatPoint tzNormal2End = {tzNormal2Start.x + (tzBox.getVertexAbsPos(2).y - tzBox.getVertexAbsPos(1).y), tzNormal2Start.y + (tzBox.getVertexAbsPos(1).x - tzBox.getVertexAbsPos(2).x)};
 
         if (tzNormal2Start.y == tzNormal2End.y)
         {
@@ -2626,9 +2638,9 @@ int main(int argc, char* argv[])
 
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0x00, 0x00, 0xFF );
 
-                SDL_RenderDrawLine( gRenderer, tzNormal1Start.x, tzNormal1Start.y, tzNormal1End.x, tzNormal1End.y);
+                //SDL_RenderDrawLine( gRenderer, tzNormal1Start.x, tzNormal1Start.y, tzNormal1End.x, tzNormal1End.y);
 
-                SDL_RenderDrawLine( gRenderer, tzNormal2Start.x, tzNormal2Start.y, tzNormal2End.x, tzNormal2End.y);
+                //SDL_RenderDrawLine( gRenderer, tzNormal2Start.x, tzNormal2Start.y, tzNormal2End.x, tzNormal2End.y);
 
                 tzCollisionPorjection1 = {0,0};
                 tzCollisionPorjection2 = {0,0};
