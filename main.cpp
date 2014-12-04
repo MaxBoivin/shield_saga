@@ -793,10 +793,10 @@ floatPoint polygon::satCollision(polygon collider)
     std::vector <floatPoint> axisEnd;
     std::vector <floatPoint> tempMTV;
 
-    for (int i = 0; i < vertex.size(); i++)
+    for (int i = 0; i < getSideNumber(); i++)
     {
         floatPoint vecStart = getVertexAbsPos(i);
-        floatPoint vecEnd = getVertexAbsPos((i+1)%vertex.size());
+        floatPoint vecEnd = getVertexAbsPos((i+1)%getSideNumber());
         floatPoint normalStart = {vecStart.x + (vecEnd.x - vecStart.x)/2, vecStart.y + (vecEnd.y - vecStart.y)/2};
         floatPoint normalEnd = {normalStart.x + (vecEnd.y - vecStart.y), normalStart.y + (vecStart.x - vecEnd.x)};
 
@@ -817,7 +817,7 @@ floatPoint polygon::satCollision(polygon collider)
     for (int i = 0; i < collider.getSideNumber(); i++)
     {
         floatPoint vecStart = collider.getVertexAbsPos(i);
-        floatPoint vecEnd = collider.getVertexAbsPos((i+1)%collider.vertex.size());
+        floatPoint vecEnd = collider.getVertexAbsPos((i+1)%collider.getSideNumber());
         floatPoint normalStart = {vecStart.x + (vecEnd.x - vecStart.x)/2, vecStart.y + (vecEnd.y - vecStart.y)/2};
         floatPoint normalEnd = {normalStart.x + (vecEnd.y - vecStart.y), normalStart.y + (vecStart.x - vecEnd.x)};
 
@@ -854,21 +854,24 @@ floatPoint polygon::satCollision(polygon collider)
         floatPoint shape2Point2 = {0,0};
         float shape2Dist = 0;
 
-        for (int j = 0; j < vertex.size(); j++)
+        for (int j = 0; j < getSideNumber(); j++)
         {
             floatPoint tempPoint1 = projectPointToVector(getVertexAbsPos(j), axisStart[i], axisEnd[i]);
 
-            for (int k = 0; k < vertex.size(); k++)
+            for (int k = 0; k < getSideNumber(); k++)
             {
-                floatPoint tempPoint2 = projectPointToVector(getVertexAbsPos(k), axisStart[i], axisEnd[i]);
-
-                float tempDist = evalDistance(tempPoint1, tempPoint2);
-
-                if (tempDist > shape1Dist)
+                if ( j != k)
                 {
-                    shape1Point1 = tempPoint1;
-                    shape1Point2 = tempPoint2;
-                    shape1Dist = tempDist;
+                    floatPoint tempPoint2 = projectPointToVector(getVertexAbsPos(k), axisStart[i], axisEnd[i]);
+
+                    float tempDist = evalDistance(tempPoint1, tempPoint2);
+
+                    if (tempDist > shape1Dist)
+                    {
+                        shape1Point1 = tempPoint1;
+                        shape1Point2 = tempPoint2;
+                        shape1Dist = tempDist;
+                    }
                 }
             }
         }
@@ -879,15 +882,18 @@ floatPoint polygon::satCollision(polygon collider)
 
             for (int k = 0; k < collider.getSideNumber(); k++)
             {
-                floatPoint tempPoint2 = projectPointToVector(collider.getVertexAbsPos(k), axisStart[i], axisEnd[i]);
-
-                float tempDist = evalDistance(tempPoint1, tempPoint2);
-
-                if (tempDist > shape2Dist)
+                if ( j != k)
                 {
-                    shape2Point1 = tempPoint1;
-                    shape2Point2 = tempPoint2;
-                    shape2Dist = tempDist;
+                    floatPoint tempPoint2 = projectPointToVector(collider.getVertexAbsPos(k), axisStart[i], axisEnd[i]);
+
+                    float tempDist = evalDistance(tempPoint1, tempPoint2);
+
+                    if (tempDist > shape2Dist)
+                    {
+                        shape2Point1 = tempPoint1;
+                        shape2Point2 = tempPoint2;
+                        shape2Dist = tempDist;
+                    }
                 }
             }
         }
@@ -895,8 +901,11 @@ floatPoint polygon::satCollision(polygon collider)
         //Debug display
         SDL_SetRenderDrawColor(gRenderer, 0xFF, 0x00, 0xFF, 0xFF);
         SDL_RenderDrawLine(gRenderer, shape1Point1.x, shape1Point1.y, shape1Point2.x, shape1Point2.y);
+        SDL_RenderDrawLine(gRenderer, shape1Point1.x, shape1Point1.y, position.x, position.y);
+        SDL_RenderDrawLine(gRenderer, position.x, position.y, shape1Point2.x, shape1Point2.y);
         SDL_SetRenderDrawColor(gRenderer, 0x00, 0xFF, 0xFF, 0xFF);
-        SDL_RenderDrawLine(gRenderer, shape2Point1.x, shape2Point1.y, shape2Point2.x, shape2Point2.y);
+        SDL_RenderDrawLine(gRenderer, shape2Point1.x, shape2Point1.y, collider.position.x, collider.position.y);
+        SDL_RenderDrawLine(gRenderer, collider.position.x, collider.position.y, shape2Point2.x, shape2Point2.y);
 
         float distS1P1S2P1 = evalDistance(shape1Point1, shape2Point1);
         float distS1P1S2P2 = evalDistance(shape1Point1, shape2Point2);
@@ -905,7 +914,7 @@ floatPoint polygon::satCollision(polygon collider)
 
         float maxDistance = fmax(fmax(distS1P1S2P1, distS1P1S2P2),fmax(distS1P2S2P1, distS1P2S2P2));
 
-        if (shape1Dist + shape2Dist < maxDistance)
+        if (shape1Dist + shape2Dist > maxDistance)
         {
             if (distS1P1S2P1 >= distS1P1S2P2 && distS1P1S2P1 >= distS1P2S2P1 && distS1P1S2P1 >= distS1P2S2P2)
             {
@@ -2280,7 +2289,7 @@ floatPoint vectorCrossPoint(floatPoint vec1Start, floatPoint vec1End, floatPoint
 
 floatPoint projectPointToVector(floatPoint point, floatPoint vecStart, floatPoint vecEnd)
 {
-    floatPoint nearestPoint = vecStart;
+    floatPoint nearestPoint = {vecEnd.x - vecStart.x, vecEnd.y - vecStart.y};
 
     float angleLineToWorld = atan2(vecEnd.y - vecStart.y, vecEnd.x - vecStart.x)*-180/PI;
 
@@ -2519,7 +2528,7 @@ int main(int argc, char* argv[])
         tzBox.addVertex((floatPoint){-100, 100});
         tzBox.addVertex((floatPoint){100, 100});
         tzBox.addVertex((floatPoint){100, -100});
-        tzBox.rotation = 15;
+        tzBox.rotation = 30;
 
         floatPoint tzNormal1Start = {tzBox.getVertexAbsPos(0).x + (tzBox.getVertexAbsPos(1).x - tzBox.getVertexAbsPos(0).x)/2, tzBox.getVertexAbsPos(0).y + (tzBox.getVertexAbsPos(1).y - tzBox.getVertexAbsPos(0).y)/2};
         floatPoint tzNormal1End = {tzNormal1Start.x + (tzBox.getVertexAbsPos(1).y-tzBox.getVertexAbsPos(0).y), tzNormal1Start.y + (tzBox.getVertexAbsPos(0).x-tzBox.getVertexAbsPos(1).x)};
@@ -2595,15 +2604,15 @@ int main(int argc, char* argv[])
                 //Draw stuff on the renderer
                 SDL_RenderClear( gRenderer );
 
-                gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, BACKGROUND);
+                //gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, BACKGROUND);
 
-                gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, MIDGROUND, 0, gPlayer.zLayer);
+                //gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, MIDGROUND, 0, gPlayer.zLayer);
 
-                gPlayer.render(gRenderer);
+                //gPlayer.render(gRenderer);
 
-                gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, MIDGROUND, gPlayer.zLayer, 9);
+                //gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, MIDGROUND, gPlayer.zLayer, 9);
 
-                gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, FOREGROUND);
+                //gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, FOREGROUND);
 
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
 
