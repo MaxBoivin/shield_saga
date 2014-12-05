@@ -836,11 +836,11 @@ floatPoint polygon::satCollision(polygon collider)
         axisEnd.push_back(normalEnd);
     }
 
-    //Debug display
+    /*//Debug display
     for (int i = 0; i < axisStart.size(); i++)
     {
         SDL_RenderDrawLine(gRenderer, axisStart[i].x, axisStart[i].y, axisEnd[i].x, axisEnd[i].y);
-    }
+    }*/
 
     //Now I need to project each shape on every axis
 
@@ -898,14 +898,14 @@ floatPoint polygon::satCollision(polygon collider)
             }
         }
 
-        //Debug display
+        /*//Debug display
         SDL_SetRenderDrawColor(gRenderer, 0xFF, 0x00, 0xFF, 0xFF);
         SDL_RenderDrawLine(gRenderer, shape1Point1.x, shape1Point1.y, shape1Point2.x, shape1Point2.y);
         SDL_RenderDrawLine(gRenderer, shape1Point1.x, shape1Point1.y, position.x, position.y);
         SDL_RenderDrawLine(gRenderer, position.x, position.y, shape1Point2.x, shape1Point2.y);
         SDL_SetRenderDrawColor(gRenderer, 0x00, 0xFF, 0xFF, 0xFF);
         SDL_RenderDrawLine(gRenderer, shape2Point1.x, shape2Point1.y, collider.position.x, collider.position.y);
-        SDL_RenderDrawLine(gRenderer, collider.position.x, collider.position.y, shape2Point2.x, shape2Point2.y);
+        SDL_RenderDrawLine(gRenderer, collider.position.x, collider.position.y, shape2Point2.x, shape2Point2.y);*/
 
         float distS1P1S2P1 = evalDistance(shape1Point1, shape2Point1);
         float distS1P1S2P2 = evalDistance(shape1Point1, shape2Point2);
@@ -916,21 +916,37 @@ floatPoint polygon::satCollision(polygon collider)
 
         if (shape1Dist + shape2Dist > maxDistance)
         {
-            if (distS1P1S2P1 >= distS1P1S2P2 && distS1P1S2P1 >= distS1P2S2P1 && distS1P1S2P1 >= distS1P2S2P2)
+            if (distS1P1S2P1 <= distS1P1S2P2 && distS1P1S2P1 <= distS1P2S2P1 && distS1P1S2P1 <= distS1P2S2P2)
             {
-                //floatPoint tempLoopMTV((floatPoint){shape2Point1.x - shape1Point1.x, shape2Point1.y - shape1Point1.y});
+                floatPoint tempLoopMTV((floatPoint){shape2Point1.x - shape1Point1.x, shape2Point1.y - shape1Point1.y});
+                if (evalDistance(tempLoopMTV, (floatPoint){0,0}) < evalDistance(mtv, (floatPoint){0,0}))
+                {
+                    mtv = tempLoopMTV;
+                }
             }
-            else if (distS1P1S2P2 >= distS1P1S2P1 && distS1P1S2P2 >= distS1P2S2P1 && distS1P1S2P2 >= distS1P2S2P2)
+            else if (distS1P1S2P2 <= distS1P1S2P1 && distS1P1S2P2 <= distS1P2S2P1 && distS1P1S2P2 <= distS1P2S2P2)
             {
-                //floatPoint tempLoopMTV((floatPoint){shape2Point2.x - shape1Point1.x, shape2Point2.y - shape1Point1.y});
+                floatPoint tempLoopMTV((floatPoint){shape2Point2.x - shape1Point1.x, shape2Point2.y - shape1Point1.y});
+                if (evalDistance(tempLoopMTV, (floatPoint){0,0}) < evalDistance(mtv, (floatPoint){0,0}))
+                {
+                    mtv = tempLoopMTV;
+                }
             }
-            else if (distS1P2S2P1 >= distS1P1S2P1 && distS1P2S2P1 >= distS1P1S2P2 && distS1P2S2P1 >= distS1P2S2P2)
+            else if (distS1P2S2P1 <= distS1P1S2P1 && distS1P2S2P1 <= distS1P1S2P2 && distS1P2S2P1 <= distS1P2S2P2)
             {
-                //floatPoint tempLoopMTV((floatPoint){shape2Point1.x - shape1Point2.x, shape2Point1.y - shape1Point2.y});
+                floatPoint tempLoopMTV((floatPoint){shape2Point1.x - shape1Point2.x, shape2Point1.y - shape1Point2.y});
+                if (evalDistance(tempLoopMTV, (floatPoint){0,0}) < evalDistance(mtv, (floatPoint){0,0}))
+                {
+                    mtv = tempLoopMTV;
+                }
             }
-            else if (distS1P2S2P2 >= distS1P1S2P1 && distS1P2S2P2 >= distS1P1S2P2 && distS1P2S2P2 >= distS1P2S2P1)
+            else if (distS1P2S2P2 <= distS1P1S2P1 && distS1P2S2P2 <= distS1P1S2P2 && distS1P2S2P2 <= distS1P2S2P1)
             {
-                //floatPoint tempLoopMTV((floatPoint){shape2Point2.x - shape1Point2.x, shape2Point2.y - shape1Point2.y});
+                floatPoint tempLoopMTV((floatPoint){shape2Point2.x - shape1Point2.x, shape2Point2.y - shape1Point2.y});
+                if (evalDistance(tempLoopMTV, (floatPoint){0,0}) < evalDistance(mtv, (floatPoint){0,0}))
+                {
+                    mtv = tempLoopMTV;
+                }
             }
         }
         else
@@ -1435,6 +1451,7 @@ void player::updatePos()
     prevPosition.x = position.x;
     prevPosition.y = position.y;
 
+
     Uint32 timeMulti = gTimer.getTime() - lastUpdate;
 
     /*if (evalDistance(position.x, position.y, gMouse.x, gMouse.y) > SCREEN_HEIGHT/4) //A test where a link the speed of the character to the distance the mouse is.
@@ -1445,6 +1462,36 @@ void player::updatePos()
     {
         speed = 0.1;
     }*/
+
+    for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size(); i++)
+    {
+        floatPoint mtv = {0,0};
+        do
+        {
+            mtv = collision.satCollision(gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i]);
+            /*if (mtv.x > 0)
+            {
+                mtv.x = ceil(mtv.x);
+            }
+            if (mtv.x < 0)
+            {
+                mtv.x = floor(mtv.x);
+            }
+            if (mtv.y > 0)
+            {
+                mtv.y = ceil(mtv.y);
+            }
+            if (mtv.y < 0)
+            {
+                mtv.y = floor(mtv.y);
+            }*/
+            position = (floatPoint){position.x + mtv.x, position.y + mtv.y};
+
+            //Collision hack
+            collision.position = position;
+            collision.rotation = angle;
+        } while (!((mtv.x > -0.5 && mtv.x < 0.5) && (mtv.y > -0.5 && mtv.y < 0.5))); //while (!(mtv.x == 0 && mtv.y == 0));
+    }
 
     switch(state)
     {
@@ -1519,7 +1566,7 @@ void player::updatePos()
         position.y = prevPosition.y;
     }
 
-    switch(checkCollisionTerrain(gWorld[gCurWorldCoord.x][gCurWorldCoord.y]))
+    /*switch(checkCollisionTerrain(gWorld[gCurWorldCoord.x][gCurWorldCoord.y]))
     {
         case XY:
             position.x = prevPosition.x;
@@ -1533,12 +1580,37 @@ void player::updatePos()
         case Y:
             position.y = prevPosition.y;
             break;
+    }*/
+
+    for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size(); i++)
+    {
+        floatPoint mtv = {0,0};
+        do
+        {
+            mtv = collision.satCollision(gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i]);
+            /*if (mtv.x > 0)
+            {
+                mtv.x = ceil(mtv.x);
+            }
+            if (mtv.x < 0)
+            {
+                mtv.x = floor(mtv.x);
+            }
+            if (mtv.y > 0)
+            {
+                mtv.y = ceil(mtv.y);
+            }
+            if (mtv.y < 0)
+            {
+                mtv.y = floor(mtv.y);
+            }*/
+            position = (floatPoint){position.x + mtv.x, position.y + mtv.y};
+
+            //Collision hack
+            collision.position = position;
+            collision.rotation = angle;
+        } while (!((mtv.x > -0.5 && mtv.x < 0.5) && (mtv.y > -0.5 && mtv.y < 0.5))); //while (!(mtv.x == 0 && mtv.y == 0));
     }
-
-
-    //Collision hack
-    collision.position = position;
-    collision.rotation = angle;
 }
 
 mapGate::mapGate()
@@ -2596,11 +2668,10 @@ int main(int argc, char* argv[])
                 }
             }
 
+            gPlayer.updatePos();
+
             if ((SDL_GetTicks() - drawTimer)/(1000/FRAME_RATE) >= 1)
             {
-
-                gPlayer.updatePos();
-
                 //Draw stuff on the renderer
                 SDL_RenderClear( gRenderer );
 
@@ -2668,8 +2739,8 @@ int main(int argc, char* argv[])
                     }
                 }
 
-                SDL_RenderDrawLine( gRenderer, tzMaxCollision1.x, tzMaxCollision1.y, tzCollisionPorjection1.x, tzCollisionPorjection1.y);
-                SDL_RenderDrawLine( gRenderer, tzMaxCollision2.x, tzMaxCollision2.y, tzCollisionPorjection2.x, tzCollisionPorjection2.y);
+                //SDL_RenderDrawLine( gRenderer, tzMaxCollision1.x, tzMaxCollision1.y, tzCollisionPorjection1.x, tzCollisionPorjection1.y);
+                //SDL_RenderDrawLine( gRenderer, tzMaxCollision2.x, tzMaxCollision2.y, tzCollisionPorjection2.x, tzCollisionPorjection2.y);
 
                 tzCollisionPorjection1 = {0,0};
                 tzCollisionPorjection2 = {0,0};
@@ -2688,21 +2759,23 @@ int main(int argc, char* argv[])
                     }
                 }
 
-                SDL_RenderDrawLine( gRenderer, tzMaxCollision1.x, tzMaxCollision1.y, tzCollisionPorjection1.x, tzCollisionPorjection1.y);
-                SDL_RenderDrawLine( gRenderer, tzMaxCollision2.x, tzMaxCollision2.y, tzCollisionPorjection2.x, tzCollisionPorjection2.y);
+                //SDL_RenderDrawLine( gRenderer, tzMaxCollision1.x, tzMaxCollision1.y, tzCollisionPorjection1.x, tzCollisionPorjection1.y);
+                //SDL_RenderDrawLine( gRenderer, tzMaxCollision2.x, tzMaxCollision2.y, tzCollisionPorjection2.x, tzCollisionPorjection2.y);
 
                 floatPoint tzMTV = gPlayer.collision.satCollision(tzBox);
 
                 if (tzMTV.x != 0 && tzMTV.y != 0)
                 {
                     std::cout << "Character colliding with the line.  MTV: " << tzMTV.x << ", " << tzMTV.y << std::endl;
+                    SDL_RenderDrawLine(gRenderer, gPlayer.position.x, gPlayer.position.y, gPlayer.position.x - tzMTV.x, gPlayer.position.y - tzMTV.y);
+                    //gPlayer.position = (floatPoint){gPlayer.position.x - tzMTV.x, gPlayer.position.y - tzMTV.y};
                 }
 
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
 
                 gPlayer.collision.draw(gRenderer);
 
-                /*for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size();i++)
+                for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size();i++)
                 {
                     SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * i)%256, 0xFF + (33333 * i)%256, 0xFF + (99999 * i)%256, 0xFF );
                     gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].draw(gRenderer);
