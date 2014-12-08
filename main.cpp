@@ -140,21 +140,12 @@ enum collisionType
     COLLISION_COUNT
 };
 
-const std::string collisionTypeName[COLLISION_COUNT] =
+const std::string collisionTypeName[COLLISION_COUNT]
 {
     "NONE",
     "RADIAL",
     "BOX",
     "GATE"
-};
-
-enum collisionAxis
-{
-    NO_AXIS_COLLIDING,
-    XY,
-    X,
-    Y,
-    COLLISION_AXIS_COUNT
 };
 
 //class declaration
@@ -420,6 +411,8 @@ class terrainMap
 
         std::vector <polygon> vCollisionPolygon;
 
+        std::vector <floatPoint> vCollisionRadial;
+
         std::vector <mapGate> vGate;
 
     private:
@@ -490,9 +483,8 @@ class character
 
         bool changeState(characterState newState);
 
-        bool checkCollisionTerrain(std::vector <intPoint> collider);
+        floatPoint checkCollisionTerrain(terrainMap currMap);
 
-        //std::string checkCollisionTerrain(std::vector <intPoint> collider);
 
 		//Class variables
 
@@ -540,9 +532,9 @@ class player: public character
 
         player();
 
-        collisionAxis checkCollisionTerrain(terrainMap currMap);
-
         void evaluateKeyInput(const Uint8* currentKeyStates);
+
+        floatPoint checkCollisionTerrain(terrainMap currMap);
 
         void updatePos();
 
@@ -1257,80 +1249,11 @@ bool character::changeState(characterState newState)
     return stateChanged;
 }
 
-/*bool character::checkCollisionTerrain(std::vector <intPoint> collider)
+floatPoint player::checkCollisionTerrain(terrainMap currMap)
 {
-    bool collide = false;
-
-    //Here I'm defining some arbitrary collision for the character.  I'll need to change that on something like collision per weapon or per animation.
-
-    float charRadius = fmin(MAP_TILE_HEIGHT, MAP_TILE_WIDTH)/2 - 2; //I added an arbitrary -2 just to give it some tolerance.
-
-    for (int i = 0; i < collider.size(); i++)
-    {
-        floatPoint currColliderPos = {(collider[i].x * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2), (collider[i].y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT / 2)};
-
-        collisionType currCollide = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].tileMap[collider[i].x][collider[i].y][MIDGROUND].collide;
-
-        if (currCollide == BOX && currCollide == GATE)
-        {
-            floatPoint objMin = {currColliderPos.x - MAP_TILE_WIDTH / 2, currColliderPos.y - MAP_TILE_HEIGHT / 2};
-            floatPoint objMax = {currColliderPos.x + MAP_TILE_WIDTH / 2, currColliderPos.y + MAP_TILE_HEIGHT / 2};
-
-            floatPoint nearObj;
-
-            if (position.x < objMin.x)
-            {
-                nearObj.x = objMin.x;
-            }
-            else if (position.x > objMax.x)
-            {
-                nearObj.x = objMax.x;
-            }
-            else
-            {
-                nearObj.x = position.x;
-            }
-
-            if (position.y < objMin.y)
-            {
-                nearObj.y = objMin.y;
-            }
-            else if (position.y > objMax.y)
-            {
-                nearObj.y = objMax.y;
-            }
-            else
-            {
-                nearObj.y = position.y;
-            }
-
-            if (evalDistance(position, nearObj) < charRadius)
-            {
-                collide = true;
-
-                std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
-            }
-        }
-        else if (currCollide == RADIAL)
-        {
-            if (evalDistance(position, currColliderPos) < (charRadius + fmin(MAP_TILE_HEIGHT, MAP_TILE_WIDTH)/2))
-            {
-                collide = true;
-
-                std::cout << "Collision detected: " << collisionTypeName[currCollide] << std::endl;
-            }
-        }
-
-    }
-
-    return collide;
-}*/
-
-collisionAxis player::checkCollisionTerrain(terrainMap currMap)
-{
-    collisionAxis collide = NO_AXIS_COLLIDING;
-
     bool collideWithGate = false;
+
+    floatPoint mtv = {0,0};
 
     //Here I'm defining some arbitrary collision for the character.  I'll need to change that on something like collision per weapon or per animation.
 
@@ -1357,27 +1280,7 @@ collisionAxis player::checkCollisionTerrain(terrainMap currMap)
         justGated = false;
     }
 
-    for (int i = 0; i < currMap.vCollisionPolygon.size(); i++)
-    {
-        for (int j = 0; j < collision.getSideNumber(); j++)
-        {
-            for ( int k = 0; k < currMap.vCollisionPolygon[i].getSideNumber(); k++)
-            {
-                floatPoint crossPoint = (vectorCrossPoint(currMap.vCollisionPolygon[i].getVertexAbsPos(k), currMap.vCollisionPolygon[i].getVertexAbsPos((k+1)%currMap.vCollisionPolygon[i].getSideNumber()), collision.getVertexAbsPos(j), collision.getVertexAbsPos((j+1)%collision.getSideNumber())));
-                //std::cout << "Character vertex number: " << j << " Coord: " << collision.getVertexRelPos(j).x << ", " << collision.getVertexRelPos(j).y << std::endl;
-                if (crossPoint.x != -1 && crossPoint.y != -1)
-                {
-                    //floatPoint correction = {collision.getVertexAbsPos(j).x - crossPoint.x, collision.getVertexAbsPos(j).y - crossPoint.y};
-                    //position.x = position.x - correction.x;
-                    //position.y = position.y - correction.y;
-                    //std::cout << "Collision point: " << crossPoint.x << ", " << crossPoint.y << std::endl;
-                    //collide = XY;
-                }
-            }
-        }
-    }
-
-    return collide;
+    return mtv;
 }
 
 player::player()
@@ -1472,7 +1375,6 @@ void player::updatePos()
     prevPosition.x = position.x;
     prevPosition.y = position.y;
 
-
     Uint32 timeMulti = gTimer.getTime() - lastUpdate;
 
     /*if (evalDistance(position.x, position.y, gMouse.x, gMouse.y) > SCREEN_HEIGHT/4) //A test where a link the speed of the character to the distance the mouse is.
@@ -1557,23 +1459,8 @@ void player::updatePos()
         position.y = prevPosition.y;
     }
 
-    switch(checkCollisionTerrain(gWorld[gCurWorldCoord.x][gCurWorldCoord.y]))
-    {
-        case XY:
-            position.x = prevPosition.x;
-            position.y = prevPosition.y;
-            break;
+    floatPoint mtv = checkCollisionTerrain(gWorld[gCurWorldCoord.x][gCurWorldCoord.y]);
 
-        case X:
-            position.x = prevPosition.x;
-            break;
-
-        case Y:
-            position.y = prevPosition.y;
-            break;
-    }
-
-    floatPoint mtv = {0,0};
     std::vector <floatPoint> tempMTV;
 
     for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size(); i++)
@@ -2726,23 +2613,6 @@ int main(int argc, char* argv[])
         **********************/
         std::cout << "\n************\nFunction testing zone\n************\n\n";
 
-        polygon tzBox = (floatPoint){200, 200};
-
-        tzBox.addVertex((floatPoint){-100, -100});
-        tzBox.addVertex((floatPoint){-100, 100});
-        tzBox.addVertex((floatPoint){100, 100});
-        tzBox.addVertex((floatPoint){100, -100});
-        tzBox.rotation = 30;
-
-        floatPoint tzDumpPoint = {150, 150};
-
-        floatPoint tzDumpMTV = pointInsidePolygon(tzDumpPoint, tzBox);
-
-        std::cout << "MTV for the point " << tzDumpPoint.x << ", " << tzDumpPoint.y << " to tzBox is " << round(tzDumpMTV.x) << ", " << round(tzDumpMTV.y) << std::endl;
-
-        polygon tzDisplacedBox = gPlayer.collision;
-
-        floatPoint tzMTV = {0,0};
 
         std::cout << "\n************\nBack to regular programming!\n************\n\n";
 
@@ -2796,67 +2666,7 @@ int main(int argc, char* argv[])
 
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
 
-                SDL_RenderDrawLine( gRenderer, gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y);
-
-                //**********Some debug hack.**********
-
-                tzBox.draw(gRenderer);
-
-                SDL_SetRenderDrawColor( gRenderer, 0xFF, 0x00, 0x00, 0xFF );
-
-                //floatPoint tzTempMTV = {0,0};
-
-                //tzDisplacedBox.position = (floatPoint){gPlayer.position.x + tzMTV.x, gPlayer.position.y + tzMTV.y};
-                //tzDisplacedBox.rotation = gPlayer.collision.rotation;
-
-                std::vector <floatPoint> tzTempMTV;
-
-                for (int i = 0; i < gPlayer.collision.getSideNumber(); i++)
-                {
-
-                    floatPoint tzLoopMTV = pointInsidePolygon(gPlayer.collision.getVertexAbsPos(i), tzBox);
-
-                    if (tzLoopMTV.x != 0 || tzLoopMTV.y != 0)
-                    {
-                        tzTempMTV.push_back(tzLoopMTV);
-                        std::cout << "gPlayer angle: " << gPlayer.angle << std::endl;
-                        std::cout << "gPlayer Point " <<  i << " is inside the polygon. MTV: " << tzMTV.x << ", " << tzMTV.y << std::endl;
-                    }
-                }
-
-                for (int i = 0; i < tzBox.getSideNumber(); i++)
-                {
-
-                    floatPoint tzLoopMTV = pointInsidePolygon(tzBox.getVertexAbsPos(i), gPlayer.collision);
-
-                    tzLoopMTV.x = -1 * tzLoopMTV.x;
-                    tzLoopMTV.y = -1 * tzLoopMTV.y;
-
-                    if (tzLoopMTV.x != 0 || tzLoopMTV.y != 0)
-                    {
-                        tzTempMTV.push_back(tzLoopMTV);
-                        std::cout << "gPlayer angle: " << gPlayer.angle << std::endl;
-                        std::cout << "tzBox Point " <<  i << " is inside the polygon. MTV: " << tzMTV.x << ", " << tzMTV.y << std::endl;
-                    }
-                }
-
-                //tzMTV = {SCREEN_WIDTH,SCREEN_HEIGHT};
-                tzMTV = {0,0};
-
-                for (int i = 0; i < tzTempMTV.size(); i++)
-                {
-                    if(evalDistance((floatPoint){0,0}, tzTempMTV[i]) > evalDistance((floatPoint){0,0}, tzMTV))
-                    {
-                        tzMTV = tzTempMTV[i];
-                    }
-                }
-
-                tzDisplacedBox.position = (floatPoint){gPlayer.position.x + tzMTV.x, gPlayer.position.y + tzMTV.y};
-                tzDisplacedBox.rotation = gPlayer.collision.rotation;
-
-                tzDisplacedBox.draw(gRenderer);
-
-                SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
+                //SDL_RenderDrawLine( gRenderer, gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y);
 
                 gPlayer.collision.draw(gRenderer);
 
