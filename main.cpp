@@ -268,7 +268,7 @@ class rect: public polygon
 
     private:
 
-};
+};*/
 
 class circle
 {
@@ -276,7 +276,11 @@ class circle
 
         circle();
 
-        circle(floatPoint position, float radius);
+        circle(floatPoint setPosition, float setRadius);
+
+        void draw(SDL_Renderer* renderer);
+
+        floatPoint nearestPoint(floatPoint point);
 
         float radius;
 
@@ -284,7 +288,7 @@ class circle
 
     private:
 
-};*/
+};
 
 //Game specific classes
 
@@ -411,7 +415,7 @@ class terrainMap
 
         std::vector <polygon> vCollisionPolygon;
 
-        std::vector <floatPoint> vCollisionRadial;
+        std::vector <circle> vCollisionRadial;
 
         std::vector <mapGate> vGate;
 
@@ -609,6 +613,8 @@ floatPoint vectorCrossPoint(floatPoint vec1Start, floatPoint vec1End, floatPoint
 floatPoint projectPointToVector(floatPoint point, floatPoint vec1Start, floatPoint vec1End);
 
 floatPoint pointInsidePolygon(floatPoint point, polygon collider);
+
+floatPoint pointInsideCircle(floatPoint point, circle collider);
 
 SDL_Texture* loadTexture(std::string path);
 
@@ -840,12 +846,6 @@ floatPoint polygon::satCollision(polygon collider)
         axisEnd.push_back(normalEnd);
     }
 
-    /*//Debug display
-    for (int i = 0; i < axisStart.size(); i++)
-    {
-        SDL_RenderDrawLine(gRenderer, axisStart[i].x, axisStart[i].y, axisEnd[i].x, axisEnd[i].y);
-    }*/
-
     //Now I need to project each shape on every axis
 
     for (int i = 0; i < axisStart.size(); i++)
@@ -902,15 +902,6 @@ floatPoint polygon::satCollision(polygon collider)
             }
         }
 
-        /*//Debug display
-        SDL_SetRenderDrawColor(gRenderer, 0xFF, 0x00, 0xFF, 0xFF);
-        SDL_RenderDrawLine(gRenderer, shape1Point1.x, shape1Point1.y, shape1Point2.x, shape1Point2.y);
-        SDL_RenderDrawLine(gRenderer, shape1Point1.x, shape1Point1.y, position.x, position.y);
-        SDL_RenderDrawLine(gRenderer, position.x, position.y, shape1Point2.x, shape1Point2.y);
-        SDL_SetRenderDrawColor(gRenderer, 0x00, 0xFF, 0xFF, 0xFF);
-        SDL_RenderDrawLine(gRenderer, shape2Point1.x, shape2Point1.y, collider.position.x, collider.position.y);
-        SDL_RenderDrawLine(gRenderer, collider.position.x, collider.position.y, shape2Point2.x, shape2Point2.y);*/
-
         float distS1P1S2P1 = evalDistance(shape1Point1, shape2Point1);
         float distS1P1S2P2 = evalDistance(shape1Point1, shape2Point2);
         float distS1P2S2P1 = evalDistance(shape1Point2, shape2Point1);
@@ -923,42 +914,18 @@ floatPoint polygon::satCollision(polygon collider)
             if (distS1P1S2P1 <= distS1P1S2P2 && distS1P1S2P1 <= distS1P2S2P1 && distS1P1S2P1 <= distS1P2S2P2)
             {
                 tempMTV.push_back((floatPoint){shape2Point1.x - shape1Point1.x, shape2Point1.y - shape1Point1.y});
-                /*floatPoint tempLoopMTV((floatPoint){shape2Point1.x - shape1Point1.x, shape2Point1.y - shape1Point1.y});
-                if (evalDistance(tempLoopMTV, (floatPoint){0,0}) < evalDistance(mtv, (floatPoint){0,0}))
-                {
-                    tempMTV.push_back(tempLoopMTV);
-                    //mtv = tempLoopMTV;
-                }*/
             }
             else if (distS1P1S2P2 <= distS1P1S2P1 && distS1P1S2P2 <= distS1P2S2P1 && distS1P1S2P2 <= distS1P2S2P2)
             {
                 tempMTV.push_back((floatPoint){shape2Point2.x - shape1Point1.x, shape2Point2.y - shape1Point1.y});
-                /*floatPoint tempLoopMTV((floatPoint){shape2Point2.x - shape1Point1.x, shape2Point2.y - shape1Point1.y});
-                if (evalDistance(tempLoopMTV, (floatPoint){0,0}) < evalDistance(mtv, (floatPoint){0,0}))
-                {
-                    tempMTV.push_back(tempLoopMTV);
-                    //mtv = tempLoopMTV;
-                }*/
             }
             else if (distS1P2S2P1 <= distS1P1S2P1 && distS1P2S2P1 <= distS1P1S2P2 && distS1P2S2P1 <= distS1P2S2P2)
             {
                 tempMTV.push_back((floatPoint){shape2Point1.x - shape1Point2.x, shape2Point1.y - shape1Point2.y});
-                /*floatPoint tempLoopMTV((floatPoint){shape2Point1.x - shape1Point2.x, shape2Point1.y - shape1Point2.y});
-                if (evalDistance(tempLoopMTV, (floatPoint){0,0}) < evalDistance(mtv, (floatPoint){0,0}))
-                {
-                    tempMTV.push_back(tempLoopMTV);
-                    //mtv = tempLoopMTV;
-                }*/
             }
             else if (distS1P2S2P2 <= distS1P1S2P1 && distS1P2S2P2 <= distS1P1S2P2 && distS1P2S2P2 <= distS1P2S2P1)
             {
                 tempMTV.push_back((floatPoint){shape2Point2.x - shape1Point2.x, shape2Point2.y - shape1Point2.y});
-                /*floatPoint tempLoopMTV((floatPoint){shape2Point2.x - shape1Point2.x, shape2Point2.y - shape1Point2.y});
-                if (evalDistance(tempLoopMTV, (floatPoint){0,0}) < evalDistance(mtv, (floatPoint){0,0}))
-                {
-                    tempMTV.push_back(tempLoopMTV);
-                    //mtv = tempLoopMTV;
-                }*/
             }
         }
         else
@@ -1067,6 +1034,45 @@ rect::rect(floatPoint initPosition, floatPoint initDimension)
 
     dimension = initDimension;
 }*/
+
+circle::circle()
+{
+    position = {0,0};
+    radius = 1;
+}
+
+circle::circle(floatPoint setPosition, float setRadius)
+{
+    position = setPosition;
+    radius = setRadius;
+}
+
+floatPoint circle::nearestPoint(floatPoint point)
+{
+    floatPoint result = position;
+
+    float angle = (atan2(position.x - point.x, position.y - point.y)*-180/PI);
+
+    result.x = position.x + sin((angle)*PI/180)*radius;
+    result.y = position.y + cos((angle+180)*PI/180)*radius;
+
+    return result;
+}
+
+void circle::draw(SDL_Renderer* renderer)
+{
+    int circumference = abs(radius * PI * 2);
+
+    float degPerPoint = 360.0 /(float)circumference;
+
+    for (int i = 0; i < circumference; i++)
+    {
+        floatPoint result = position;
+        result.x = round(position.x + sin((i*degPerPoint)*PI/180)*radius);
+        result.y = round(position.y + cos((i*degPerPoint+180)*PI/180)*radius);
+        SDL_RenderDrawPoint(renderer, result.x, result.y);
+    }
+}
 
 timer::timer()
 {
@@ -1264,7 +1270,7 @@ floatPoint player::checkCollisionTerrain(terrainMap currMap)
         floatPoint gatePos = {(currMap.vGate[i].position.x * MAP_TILE_WIDTH + MAP_TILE_WIDTH/2), (currMap.vGate[i].position.y * MAP_TILE_HEIGHT + MAP_TILE_HEIGHT/2)};
         if (evalDistance(position, gatePos) <= charRadius)
         {
-            std::cout << "Player touching a gate." << std::endl;
+            //std::cout << "Player touching a gate." << std::endl;
             collideWithGate = true;
             if (!justGated)
             {
@@ -1278,6 +1284,82 @@ floatPoint player::checkCollisionTerrain(terrainMap currMap)
     if (collideWithGate == false)
     {
         justGated = false;
+    }
+
+    std::vector <floatPoint> tempMTV;
+
+    for (int i = 0; i < currMap.vCollisionRadial.size(); i++)
+    {
+        floatPoint posMTV = pointInsideCircle(position, currMap.vCollisionRadial[i]);
+
+        if (posMTV.x != 0 || posMTV.y != 0)
+        {
+            tempMTV.push_back(posMTV);
+        }
+        for (int j = 0; j < collision.getSideNumber(); j++)
+        {
+            floatPoint loopMTV = pointInsideCircle(collision.getVertexAbsPos(j), currMap.vCollisionRadial[i]);
+            if (loopMTV.x != 0 || loopMTV.y != 0)
+            {
+                tempMTV.push_back(loopMTV);
+            }
+        }
+    }
+
+    for (int i = 0; i < currMap.vCollisionPolygon.size(); i++)
+    {
+        floatPoint posMTV = pointInsidePolygon(position, currMap.vCollisionPolygon[i]);
+
+        if (posMTV.x != 0 || posMTV.y != 0)
+        {
+            tempMTV.push_back(posMTV);
+        }
+
+        for (int j = 0; j < collision.getSideNumber(); j++)
+        {
+            floatPoint loopMTV = pointInsidePolygon(collision.getVertexAbsPos(j), currMap.vCollisionPolygon[i]);
+            if (loopMTV.x != 0 || loopMTV.y != 0)
+            {
+                tempMTV.push_back(loopMTV);
+            }
+        }
+        for (int j = 0; j < currMap.vCollisionPolygon[i].getSideNumber(); j++)
+        {
+            floatPoint loopMTV = pointInsidePolygon(currMap.vCollisionPolygon[i].getVertexAbsPos(j), collision);
+            loopMTV.x = loopMTV.x * -1;
+            loopMTV.y = loopMTV.y * -1;
+            if (loopMTV.x != 0 || loopMTV.y != 0)
+            {
+                tempMTV.push_back(loopMTV);
+            }
+        }
+    }
+
+    for (int i = 0; i < currMap.vCollisionPolygon.size(); i++)
+    {
+        floatPoint loopMTV = collision.satCollision(currMap.vCollisionPolygon[i]);
+
+        if (loopMTV.x != 0 || loopMTV.y != 0)
+        {
+            tempMTV.push_back(loopMTV);
+        }
+
+        loopMTV = currMap.vCollisionPolygon[i].satCollision(collision);
+
+        loopMTV.x = loopMTV.x * -1;
+        loopMTV.y = loopMTV.y * -1;
+        if (loopMTV.x != 0 || loopMTV.y != 0)
+        {
+            tempMTV.push_back(loopMTV);
+        }
+    }
+
+    for (int i = 0; i < tempMTV.size(); i++)
+    {
+        if(evalDistance((floatPoint){0,0}, tempMTV[i]) > evalDistance((floatPoint){0,0}, mtv))
+        {
+            mtv = tempMTV[i];
+        }
     }
 
     return mtv;
@@ -1463,106 +1545,10 @@ void player::updatePos()
 
     std::vector <floatPoint> tempMTV;
 
-    for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size(); i++)
-    {
-        floatPoint posMTV = pointInsidePolygon(gPlayer.position, gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i]);
-
-        if (posMTV.x != 0 || posMTV.y != 0)
-        {
-            tempMTV.push_back(posMTV);
-        }
-
-        for (int j = 0; j < gPlayer.collision.getSideNumber(); j++)
-        {
-            floatPoint loopMTV = pointInsidePolygon(gPlayer.collision.getVertexAbsPos(j), gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i]);
-            if (loopMTV.x != 0 || loopMTV.y != 0)
-            {
-                tempMTV.push_back(loopMTV);
-            }
-        }
-        for (int j = 0; j < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].getSideNumber(); j++)
-        {
-            floatPoint loopMTV = pointInsidePolygon(gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].getVertexAbsPos(j), gPlayer.collision);
-            loopMTV.x = loopMTV.x * -1;
-            loopMTV.y = loopMTV.y * -1;
-            if (loopMTV.x != 0 || loopMTV.y != 0)
-            {
-                tempMTV.push_back(loopMTV);
-            }
-        }
-    }
-
-    for (int i = 0; i < tempMTV.size(); i++)
-    {
-        if(evalDistance((floatPoint){0,0}, tempMTV[i]) > evalDistance((floatPoint){0,0}, mtv))
-        {
-            mtv = tempMTV[i];
-        }
-    }
-
     position = (floatPoint){position.x + mtv.x, position.y + mtv.y};
-
-    for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size(); i++)
-    {
-        do
-        {
-            mtv = collision.satCollision(gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i]);
-            if (mtv.x > 0)
-            {
-                mtv.x + 5;
-                //mtv.x = ceil(mtv.x);
-            }
-            if (mtv.x < -0)
-            {
-                mtv.x - 5;
-                //mtv.x = floor(mtv.x);
-            }
-            if (mtv.y > 0)
-            {
-                mtv.y + 5;
-                //mtv.y = ceil(mtv.y);
-            }
-            if (mtv.y < -0)
-            {
-                mtv.y - 5;
-                //mtv.y = floor(mtv.y);
-            }
-            position = (floatPoint){position.x + mtv.x, position.y + mtv.y};
-
-            //Collision hack
-            collision.position = position;
-            collision.rotation = angle;
-        } while (!((mtv.x > -1 && mtv.x < 1) && (mtv.y > -1 && mtv.y < 1))); //while (!(mtv.x == 0 && mtv.y == 0));
-        do
-        {
-            mtv = gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].satCollision(collision);
-            if (mtv.x > 0)
-            {
-                mtv.x + 5;
-                //mtv.x = ceil(mtv.x);
-            }
-            if (mtv.x < -0)
-            {
-                mtv.x - 5;
-                //mtv.x = floor(mtv.x);
-            }
-            if (mtv.y > 0)
-            {
-                mtv.y + 5;
-                //mtv.y = ceil(mtv.y);
-            }
-            if (mtv.y < -0)
-            {
-                mtv.y - 5;
-                //mtv.y = floor(mtv.y);
-            }
-            position = (floatPoint){position.x - mtv.x, position.y - mtv.y};
-
-            //Collision hack
-            collision.position = position;
-            collision.rotation = angle;
-        } while (!((mtv.x > -1 && mtv.x < 1) && (mtv.y > -1 && mtv.y < 1))); //while (!(mtv.x == 0 && mtv.y == 0));
-    }
+    //Collision hack
+    collision.position = position;
+    collision.rotation = angle;
 }
 
 mapGate::mapGate()
@@ -1690,6 +1676,11 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                         if (gTerrain[k].collide == BOX)
                                         {
                                             collisionMap[j][i] = BOX;
+                                        }
+                                        else if (gTerrain[k].collide == RADIAL)
+                                        {
+                                            circle tempCircle((floatPoint){j*MAP_TILE_WIDTH + MAP_TILE_WIDTH/2, i*MAP_TILE_HEIGHT + MAP_TILE_HEIGHT/2}, fmin(MAP_TILE_HEIGHT, MAP_TILE_WIDTH)/2);
+                                            vCollisionRadial.push_back(tempCircle);
                                         }
                                     }
                                     if (gTerrain[k].collide == GATE)
@@ -2393,6 +2384,23 @@ floatPoint pointInsidePolygon(floatPoint point, polygon collider)
     return mtv;
 }
 
+floatPoint pointInsideCircle(floatPoint point, circle collider)
+{
+    floatPoint mtv = {SCREEN_WIDTH,SCREEN_HEIGHT};
+
+    if (evalDistance(point, collider.position) > collider.radius)
+    {
+        return mtv = {0,0};
+    }
+    else
+    {
+        floatPoint tempMTV = collider.nearestPoint(point);
+        mtv = (floatPoint){tempMTV.x - collider.position.x, tempMTV.y - collider.position.y};
+    }
+
+    return mtv;
+}
+
 bool renderText(std::string text, TTF_Font* font, int posX, int posY, SDL_Color textColor, int pointSize)
 {
     bool success = false;
@@ -2614,6 +2622,7 @@ int main(int argc, char* argv[])
         std::cout << "\n************\nFunction testing zone\n************\n\n";
 
 
+
         std::cout << "\n************\nBack to regular programming!\n************\n\n";
 
         /*********************
@@ -2664,6 +2673,10 @@ int main(int argc, char* argv[])
 
                 //gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, FOREGROUND);
 
+                /*********************
+                Display testing zone!
+                **********************/
+
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
 
                 //SDL_RenderDrawLine( gRenderer, gPlayer.position.x, gPlayer.position.y, gMouse.x, gMouse.y);
@@ -2676,7 +2689,15 @@ int main(int argc, char* argv[])
                     gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].draw(gRenderer);
                 }
 
-                 //**********End of debug hack.**********/
+                for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionRadial.size();i++)
+                {
+                    SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * i)%256, 0xFF + (33333 * i)%256, 0xFF + (99999 * i)%256, 0xFF );
+                    gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionRadial[i].draw(gRenderer);
+                }
+
+                /*********************
+                Back to regular programing!
+                **********************/
 
                 //Update screen
                 SDL_RenderPresent( gRenderer );
