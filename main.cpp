@@ -1303,6 +1303,16 @@ floatPoint player::checkCollisionTerrain(terrainMap currMap)
             {
                 tempMTV.push_back(loopMTV);
             }
+            floatPoint projectedPoint = projectPointToVector(currMap.vCollisionRadial[i].position, collision.getVertexAbsPos(j), collision.getVertexAbsPos((j+1)%collision.getSideNumber()));
+            floatPoint nearestPoint = currMap.vCollisionRadial[i].nearestPoint(projectedPoint);
+
+            loopMTV = pointInsidePolygon(nearestPoint, collision);
+            loopMTV.x = loopMTV.x * -1;
+            loopMTV.y = loopMTV.y * -1;
+            if (loopMTV.x != 0 || loopMTV.y != 0)
+            {
+                tempMTV.push_back(loopMTV);
+            }
         }
     }
 
@@ -1335,7 +1345,7 @@ floatPoint player::checkCollisionTerrain(terrainMap currMap)
         }
     }
 
-    for (int i = 0; i < currMap.vCollisionPolygon.size(); i++)
+    /*for (int i = 0; i < currMap.vCollisionPolygon.size(); i++)
     {
         floatPoint loopMTV = collision.satCollision(currMap.vCollisionPolygon[i]);
 
@@ -1352,7 +1362,7 @@ floatPoint player::checkCollisionTerrain(terrainMap currMap)
         {
             tempMTV.push_back(loopMTV);
         }
-    }
+    }*/
 
     for (int i = 0; i < tempMTV.size(); i++)
     {
@@ -2395,7 +2405,7 @@ floatPoint pointInsideCircle(floatPoint point, circle collider)
     else
     {
         floatPoint tempMTV = collider.nearestPoint(point);
-        mtv = (floatPoint){tempMTV.x - collider.position.x, tempMTV.y - collider.position.y};
+        mtv = (floatPoint){tempMTV.x - point.x, tempMTV.y - point.y};
     }
 
     return mtv;
