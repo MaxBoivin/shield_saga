@@ -374,6 +374,9 @@ class terrain
         int spritePosX;
         int spritePosY;
 
+        //The number of different sprite  for this type of terrain
+        int spriteVariation;
+
         //Does this terrain block the player
         collisionType collide;
 
@@ -1584,6 +1587,7 @@ terrain::terrain()
     spriteCenterH = 29;
     spritePosX = 0;
     spritePosY = 0;
+    spriteVariation = 1;
     collide = NONE;
     health = -1;
     resPiercing = -1;
@@ -1602,6 +1606,7 @@ terrain::~terrain()
     spriteCenterH = 29;
     spritePosX = 0;
     spritePosY = 0;
+    spriteVariation = 1;
     collide = NONE;
     health = -1;
     resPiercing = -1;
@@ -1927,8 +1932,6 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
         std::cout << "Could not find map file " << std::to_string(mapCoordX) << "-" << std::to_string(mapCoordY) << ".map" << std::endl;
     }
 
-    std::cout << "Exiting the terrainMap::loadMap function." << std::endl;
-
     return success;
 }
 
@@ -2121,6 +2124,7 @@ bool loadTerrain()
                         >> gTerrain[i].spriteCenterH
                         >> gTerrain[i].spritePosX
                         >> gTerrain[i].spritePosY
+                        >> gTerrain[i].spriteVariation
                         >> tempcollide
                         >> gTerrain[i].health
                         >> gTerrain[i].resPiercing
