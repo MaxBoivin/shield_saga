@@ -1760,14 +1760,12 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
             {
                 for (int j = 0; j < mapSize.x; j++)
                 {
-                    //std::cout << "Looking up tile " << j << ", " << i << std::endl;
                     if (collisionMap[j][i][h] == BOX)
                     {
-                        //std::cout << "Found a  BOX on map " << mapCoordX << ", " << mapCoordY << " at pos: " << j << ", " << i << ", " << h << std::endl;
 
                         intPoint startTile = {j,i};
                         intPoint currTile = startTile;
-                        int prevDirection = 3; //0 = DOWN, 1 = LEFT, 2 = UP, 3 = RIGHT
+                        int prevDirection = 3; //0 = LEFT, 1 = UP, 2 = RIGHT, 3 = BOTTOM
 
                         int doubleTakeVerifivation = 0;
 
@@ -1775,8 +1773,12 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                         visitedTile.push_back(currTile);
 
                         fileCollisionPolygon.push_back((floatPoint){0,0});
-                        //std::cout << "There is now " << vCollisionPolygon.size() << " polygons in the collision array" << std::endl;
-                        fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x-1) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+
+                        floatPoint tileCollisionPointOffset = {(float)(MAP_TILE_WIDTH/2)-(float)(tileMap[j][i][h].collision.x*(float)(tileMap[j][i][h].spriteCenterW/tileMap[j][i][h].spriteW)),(float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[j][i][h].collision.y*(float)(tileMap[j][i][h].spriteCenterH/tileMap[j][i][h].spriteH))};
+                        tileCollisionPointOffset = {0,0};
+
+                        //Adding the first vertex on the top left corner.
+                        fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x) * MAP_TILE_WIDTH + tileCollisionPointOffset.x, (currTile.y) * MAP_TILE_HEIGHT + tileCollisionPointOffset.y});
 
                         do
                         {
@@ -1784,24 +1786,25 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                             {
                                 if ((k + prevDirection)%4 == 0)
                                 {
-                                    //std::cout << "Checking if the top tile is a BOX" << std::endl;
                                     if (currTile.y -1 >= 0 && collisionMap[currTile.x][currTile.y - 1][h] == BOX) //Looking UP
                                     {
-                                        //std::cout << "It is a BOX!" << std::endl;
-                                        if (prevDirection != 3)
+                                        if (prevDirection != 3) //It does not come from the bottom
                                         {
-                                            //std::cout << "This is a change of direction." << std::endl;
-                                            if (prevDirection == 0)
+                                            if (prevDirection == 0) //Coming form the left
                                             {
+                                                //Adding a vertex on the top left corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x-1) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
                                             }
-                                            else if (prevDirection == 1)
+                                            else if (prevDirection == 1) //Coming for the top, backtracking
                                             {
+                                                //Adding a vertex on the bottom right corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                //Adding a vertex on the bottom left corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x -1 ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
                                             }
-                                            else if (prevDirection == 2)
+                                            else if (prevDirection == 2) //Coming from the right
                                             {
+                                                //Adding a vertex on the bottom left corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x -1 ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
                                             }
                                         }
@@ -1813,24 +1816,25 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                 }
                                 else if ((k + prevDirection)%4 == 1)
                                 {
-                                    //std::cout << "Checking if the right tile is a BOX" << std::endl;
                                     if (currTile.x +1 < mapSize.x && collisionMap[currTile.x+1][currTile.y][h] == BOX) //Looking RIGHT
                                     {
-                                        //std::cout << "It is a BOX!" << std::endl;
-                                        if (prevDirection != 0)
+                                        if (prevDirection != 0) //It does not come from the left
                                         {
-                                            //std::cout << "This is a change of direction." << std::endl;
-                                            if (prevDirection == 1)
+                                            if (prevDirection == 1) //Coming from the top
                                             {
+                                                //Adding a vertex on the top right corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
                                             }
-                                            else if (prevDirection == 2)
+                                            else if (prevDirection == 2) //Coming for the right, backtracking
                                             {
+                                                //Adding a vertex on the bottom left corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x -1 ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                //Adding a vertex on the top left corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x-1) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
                                             }
-                                            else if (prevDirection == 3)
+                                            else if (prevDirection == 3) //Coming from the bottom
                                             {
+                                                //Adding a vertex on the top left corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x-1) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
                                             }
                                         }
@@ -1842,24 +1846,25 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                 }
                                 else if ((k + prevDirection)%4 == 2)
                                 {
-                                    //std::cout << "Checking if the bottom tile is a BOX" << std::endl;
                                     if (currTile.y +1 < mapSize.y && collisionMap[currTile.x][currTile.y+1][h] == BOX) //Looking DOWN
                                     {
-                                        //std::cout << "It is a BOX!" << std::endl;
-                                        if (prevDirection != 1)
+                                        if (prevDirection != 1) //It does not come from the top
                                         {
-                                            //std::cout << "This is a change of direction." << std::endl;
-                                            if (prevDirection == 2)
+                                            if (prevDirection == 2) //Coming from the right
                                             {
+                                                //Adding a vertex on the bottom right corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
                                             }
-                                            else if (prevDirection == 3)
+                                            else if (prevDirection == 3) // Coming from the bottom, backtracking
                                             {
+                                                //Adding a vertex on the top right corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                //Adding a vertex on the bottom right corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
                                             }
-                                            else if (prevDirection == 0)
+                                            else if (prevDirection == 0) //Coming from the left
                                             {
+                                                //Adding a vertex on the top right corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
                                             }
                                         }
@@ -1871,24 +1876,25 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                 }
                                 else if ((k + prevDirection)%4 == 3)
                                 {
-                                    //std::cout << "Checking if the left tile is a BOX" << std::endl;
                                     if (currTile.x -1 >= 0 && collisionMap[currTile.x-1][currTile.y][h] == BOX) //Looking LEFT
                                     {
-                                        //std::cout << "It is a BOX!" << std::endl;
-                                        if (prevDirection != 2)
+                                        if (prevDirection != 2) //It does not come from the right
                                         {
-                                            //std::cout << "This is a change of direction." << std::endl;
-                                            if (prevDirection == 3)
+                                            if (prevDirection == 3) //Coming from the bottom
                                             {
+                                                //Adding a vertex on the bottom left corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x - 1) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
                                             }
-                                            else if (prevDirection == 0)
+                                            else if (prevDirection == 0) //Coming from the left, backtracking
                                             {
+                                                //Adding a vertex on the top right corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                //Adding a vertex on the bottom right corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
                                             }
-                                            else if (prevDirection == 1)
+                                            else if (prevDirection == 1) //Coming from the top
                                             {
+                                                //Adding a vertex on the bottom right corner
                                                 fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
                                             }
                                         }
@@ -1919,15 +1925,18 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
                         if (visitedTile.size() == 1)
                         {
-                            //vCollisionPolygon[vCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * tileMap[j][i][h].collision.x, (currTile.y ) * tileMap[j][i][h].collision.y});
+                            //The box is by itself
+
+                            //Adding a vertex on the top right corner
                             fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                            //Adding a vertex on the bottom right corner
                             fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                            //Adding a vertex on the bottom left corner
                             fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x - 1) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
                         }
 
                         for (int k = 0; k < visitedTile.size(); k++)
                         {
-                            //std::cout << "Changing the tile map to NONE " << visitedTile[k].x << ", " << visitedTile[k].y << std::endl;
                             collisionMap[visitedTile[k].x][visitedTile[k].y][h] = NONE;
                         }
 
