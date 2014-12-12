@@ -115,15 +115,17 @@ enum terrainType
     GRASS,
     TREE_TRUNK_SMALL,
     TREE_TRUNK_BIG,
+    BLANK_GATE,
     BOX_COLLIDER,
     HV_BOX_COLLIDER,
-    BLANK_GATE,
+    HH_BOX_COLLIDER,
+    HHV_BOX_COLLIDER,
     BLANK,
     TERRAIN_COUNT //This one serve no purpose other than to have the number of STATE available
 };
 
 //This are just an array on strings for check the against the enum
-const std::string terrainTypeName[COMBO_COUNT] =
+const std::string terrainTypeName[TERRAIN_COUNT] =
 {
     "DIRT",
     "GRASS",
@@ -132,6 +134,8 @@ const std::string terrainTypeName[COMBO_COUNT] =
     "BLANK_GATE",
     "BOX_COLLIDER",
     "HV_BOX_COLLIDER",
+    "HH_BOX_COLLIDER",
+    "HHV_BOX_COLLIDER",
     "-"
 };
 
@@ -978,7 +982,7 @@ bool polygon::delVertex(int vertexNumber)
 
 bool polygon::setVertexRelPos(int vertexNumber, floatPoint vertexNewRelativePosition)
 {
-    if(vertexNumber <= vertex.size() && vertexNumber >= 0)
+    if(vertexNumber < vertex.size() && vertexNumber >= 0)
     {
         vertex[vertexNumber] = vertexNewRelativePosition;
         return true;
@@ -1774,8 +1778,9 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
                         fileCollisionPolygon.push_back((floatPoint){0,0});
 
-                        floatPoint tileCollisionPointOffset = {(float)(MAP_TILE_WIDTH/2)-(float)(tileMap[j][i][h].collision.x*(float)(tileMap[j][i][h].spriteCenterW/tileMap[j][i][h].spriteW)),(float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[j][i][h].collision.y*(float)(tileMap[j][i][h].spriteCenterH/tileMap[j][i][h].spriteH))};
-                        tileCollisionPointOffset = {0,0};
+                        floatPoint tileCollisionPointOffset = {round((float)(MAP_TILE_WIDTH/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
+                                                                round((float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
+                        //tileCollisionPointOffset = {0,0};
 
                         //Adding the first vertex on the top left corner.
                         fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x) * MAP_TILE_WIDTH + tileCollisionPointOffset.x, (currTile.y) * MAP_TILE_HEIGHT + tileCollisionPointOffset.y});
@@ -1786,26 +1791,32 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                             {
                                 if ((k + prevDirection)%4 == 0)
                                 {
+                                    tileCollisionPointOffset = {round((float)(MAP_TILE_WIDTH/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
+                                                                round((float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
+
                                     if (currTile.y -1 >= 0 && collisionMap[currTile.x][currTile.y - 1][h] == BOX) //Looking UP
                                     {
                                         if (prevDirection != 3) //It does not come from the bottom
                                         {
+                                            /*tileCollisionPointOffset = {(float)(MAP_TILE_WIDTH/2)-(float)(tileMap[j][i][h].collision.x)*(float)(tileMap[j][i][h].spriteCenterW)/(float)(tileMap[j][i][h].spriteW),
+                                                                    (float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[j][i][h].collision.y)*(float)(tileMap[j][i][h].spriteCenterH)/(float)(tileMap[j][i][h].spriteH)};*/
+
                                             if (prevDirection == 0) //Coming form the left
                                             {
                                                 //Adding a vertex on the top left corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x-1) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x) * MAP_TILE_WIDTH + tileCollisionPointOffset.x, (currTile.y) * MAP_TILE_HEIGHT + tileCollisionPointOffset.y});
                                             }
                                             else if (prevDirection == 1) //Coming for the top, backtracking
                                             {
                                                 //Adding a vertex on the bottom right corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH - tileCollisionPointOffset.x, (currTile.y + 1) * MAP_TILE_HEIGHT - tileCollisionPointOffset.y});
                                                 //Adding a vertex on the bottom left corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x -1 ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x) * MAP_TILE_WIDTH + tileCollisionPointOffset.x, (currTile.y + 1) * MAP_TILE_HEIGHT - tileCollisionPointOffset.y});
                                             }
                                             else if (prevDirection == 2) //Coming from the right
                                             {
                                                 //Adding a vertex on the bottom left corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x -1 ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x) * MAP_TILE_WIDTH + tileCollisionPointOffset.x, (currTile.y + 1) * MAP_TILE_HEIGHT - tileCollisionPointOffset.y});
                                             }
                                         }
                                         prevDirection = 3;
@@ -1820,22 +1831,24 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                     {
                                         if (prevDirection != 0) //It does not come from the left
                                         {
+                                            /*tileCollisionPointOffset = {(float)(MAP_TILE_WIDTH/2)-(float)(tileMap[j+1][i][h].collision.x)*(float)(tileMap[j+1][i][h].spriteCenterW)/(float)(tileMap[j+1][i][h].spriteW),
+                                                                    (float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[j+1][i][h].collision.y)*(float)(tileMap[j+1][i][h].spriteCenterH)/(float)(tileMap[j+1][i][h].spriteH)};*/
                                             if (prevDirection == 1) //Coming from the top
                                             {
                                                 //Adding a vertex on the top right corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH - tileCollisionPointOffset.x, (currTile.y) * MAP_TILE_HEIGHT + tileCollisionPointOffset.y});
                                             }
                                             else if (prevDirection == 2) //Coming for the right, backtracking
                                             {
                                                 //Adding a vertex on the bottom left corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x -1 ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x) * MAP_TILE_WIDTH + tileCollisionPointOffset.x, (currTile.y + 1) * MAP_TILE_HEIGHT - tileCollisionPointOffset.y});
                                                 //Adding a vertex on the top left corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x-1) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x) * MAP_TILE_WIDTH + tileCollisionPointOffset.x, (currTile.y) * MAP_TILE_HEIGHT + tileCollisionPointOffset.y});
                                             }
                                             else if (prevDirection == 3) //Coming from the bottom
                                             {
                                                 //Adding a vertex on the top left corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x-1) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x) * MAP_TILE_WIDTH + tileCollisionPointOffset.x, (currTile.y) * MAP_TILE_HEIGHT + tileCollisionPointOffset.y});
                                             }
                                         }
                                         prevDirection = 0;
@@ -1850,22 +1863,25 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                     {
                                         if (prevDirection != 1) //It does not come from the top
                                         {
+                                            /*tileCollisionPointOffset = {(float)(MAP_TILE_WIDTH/2)-(float)(tileMap[j][i+1][h].collision.x)*(float)(tileMap[j][i+1][h].spriteCenterW)/(float)(tileMap[j][i+1][h].spriteW),
+                                                                    (float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[j][i+1][h].collision.y)*(float)(tileMap[j][i+1][h].spriteCenterH)/(float)(tileMap[j][i+1][h].spriteH)};*/
+
                                             if (prevDirection == 2) //Coming from the right
                                             {
                                                 //Adding a vertex on the bottom right corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH - tileCollisionPointOffset.x, (currTile.y + 1) * MAP_TILE_HEIGHT - tileCollisionPointOffset.y});
                                             }
                                             else if (prevDirection == 3) // Coming from the bottom, backtracking
                                             {
                                                 //Adding a vertex on the top right corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH - tileCollisionPointOffset.x, (currTile.y) * MAP_TILE_HEIGHT + tileCollisionPointOffset.y});
                                                 //Adding a vertex on the bottom right corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH - tileCollisionPointOffset.x, (currTile.y + 1) * MAP_TILE_HEIGHT - tileCollisionPointOffset.y});
                                             }
                                             else if (prevDirection == 0) //Coming from the left
                                             {
                                                 //Adding a vertex on the top right corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH - tileCollisionPointOffset.x, (currTile.y) * MAP_TILE_HEIGHT + tileCollisionPointOffset.y});
                                             }
                                         }
                                         prevDirection = 1;
@@ -1880,22 +1896,25 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                     {
                                         if (prevDirection != 2) //It does not come from the right
                                         {
+                                            /*tileCollisionPointOffset = {(float)(MAP_TILE_WIDTH/2)-(float)(tileMap[j-1][i][h].collision.x)*(float)(tileMap[j-1][i][h].spriteCenterW)/(float)(tileMap[j-1][i][h].spriteW),
+                                                                    (float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[j-1][i][h].collision.y)*(float)(tileMap[j-1][i][h].spriteCenterH)/(float)(tileMap[j-1][i][h].spriteH)};*/
+
                                             if (prevDirection == 3) //Coming from the bottom
                                             {
                                                 //Adding a vertex on the bottom left corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x - 1) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x) * MAP_TILE_WIDTH + tileCollisionPointOffset.x, (currTile.y + 1) * MAP_TILE_HEIGHT - tileCollisionPointOffset.y});
                                             }
                                             else if (prevDirection == 0) //Coming from the left, backtracking
                                             {
                                                 //Adding a vertex on the top right corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH - tileCollisionPointOffset.x, (currTile.y) * MAP_TILE_HEIGHT + tileCollisionPointOffset.y});
                                                 //Adding a vertex on the bottom right corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH - tileCollisionPointOffset.x, (currTile.y + 1) * MAP_TILE_HEIGHT - tileCollisionPointOffset.y});
                                             }
                                             else if (prevDirection == 1) //Coming from the top
                                             {
                                                 //Adding a vertex on the bottom right corner
-                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                                                fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH - tileCollisionPointOffset.x, (currTile.y + 1) * MAP_TILE_HEIGHT - tileCollisionPointOffset.y});
                                             }
                                         }
                                         prevDirection = 2;
@@ -1920,19 +1939,27 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
                         if (prevDirection == 2)
                         {
-                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x - 1) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                            //Adding a vertex on the bottom left corner
+                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x) * MAP_TILE_WIDTH + tileCollisionPointOffset.x, (currTile.y + 1) * MAP_TILE_HEIGHT - tileCollisionPointOffset.y});
                         }
 
                         if (visitedTile.size() == 1)
                         {
                             //The box is by itself
 
+                            //The offset is gonna be cut in half so I can have the offset on each side
+                            /*tileCollisionPointOffset.x = round(tileCollisionPointOffset.x - (float)MAP_TILE_WIDTH/4);
+                            tileCollisionPointOffset.y = round(tileCollisionPointOffset.y - (float)MAP_TILE_HEIGHT/4);*/
+
+                            //Moving the original point to the half the offset.  I don't know why I have to add a -1 at the end
+                            //fileCollisionPolygon[fileCollisionPolygon.size()-1].setVertexRelPos(0, (floatPoint){(currTile.x) * MAP_TILE_WIDTH + tileCollisionPointOffset.x - 1, (currTile.y) * MAP_TILE_HEIGHT + tileCollisionPointOffset.y - 1});
+
                             //Adding a vertex on the top right corner
-                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y - 1) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH - tileCollisionPointOffset.x, (currTile.y) * MAP_TILE_HEIGHT + tileCollisionPointOffset.y});
                             //Adding a vertex on the bottom right corner
-                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x ) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x + 1) * MAP_TILE_WIDTH - tileCollisionPointOffset.x, (currTile.y + 1) * MAP_TILE_HEIGHT - tileCollisionPointOffset.y});
                             //Adding a vertex on the bottom left corner
-                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x - 1) * MAP_TILE_WIDTH + tileMap[j][i][h].collision.x, (currTile.y) * MAP_TILE_HEIGHT + tileMap[j][i][h].collision.y});
+                            fileCollisionPolygon[fileCollisionPolygon.size()-1].addVertex((floatPoint){(currTile.x) * MAP_TILE_WIDTH + tileCollisionPointOffset.x, (currTile.y + 1) * MAP_TILE_HEIGHT - tileCollisionPointOffset.y});
                         }
 
                         for (int k = 0; k < visitedTile.size(); k++)
@@ -2745,13 +2772,13 @@ int main(int argc, char* argv[])
 
                 for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon.size();i++)
                 {
-                    SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * i)%256, 0xFF + (33333 * i)%256, 0xFF + (99999 * i)%256, 0xFF );
+                    //SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * i)%256, 0xFF + (33333 * i)%256, 0xFF + (99999 * i)%256, 0xFF );
                     gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionPolygon[i].draw(gRenderer);
                 }
 
                 for (int i = 0; i < gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionRadial.size();i++)
                 {
-                    SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * i)%256, 0xFF + (33333 * i)%256, 0xFF + (99999 * i)%256, 0xFF );
+                    //SDL_SetRenderDrawColor( gRenderer, 0xFF + (11111 * i)%256, 0xFF + (33333 * i)%256, 0xFF + (99999 * i)%256, 0xFF );
                     gWorld[gCurWorldCoord.x][gCurWorldCoord.y].vCollisionRadial[i].draw(gRenderer);
                 }
 
