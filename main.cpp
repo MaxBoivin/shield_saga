@@ -115,6 +115,10 @@ enum terrainType
     GRASS,
     TREE_TRUNK_SMALL,
     TREE_TRUNK_BIG,
+    WALL_RUBBLE_HH,
+    WALL_RUBBLE_HV,
+    WALL_RUBBLE_HHV,
+    WALL_RUBBLE_CTL_HHV,
     BLANK_GATE,
     BOX_COLLIDER,
     HV_BOX_COLLIDER,
@@ -131,6 +135,10 @@ const std::string terrainTypeName[TERRAIN_COUNT] =
     "GRASS",
     "TREE_TRUNK_SMALL",
     "TREE_TRUNK_BIG",
+    "WALL_RUBBLE_HH",
+    "WALL_RUBBLE_HV",
+    "WALL_RUBBLE_HHV",
+    "WALL_RUBBLE_CTL_HHV",
     "BLANK_GATE",
     "BOX_COLLIDER",
     "HV_BOX_COLLIDER",
@@ -1798,8 +1806,8 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                     {
                                         if (prevDirection != 3) //It does not come from the bottom
                                         {
-                                            /*tileCollisionPointOffset = {(float)(MAP_TILE_WIDTH/2)-(float)(tileMap[j][i][h].collision.x)*(float)(tileMap[j][i][h].spriteCenterW)/(float)(tileMap[j][i][h].spriteW),
-                                                                    (float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[j][i][h].collision.y)*(float)(tileMap[j][i][h].spriteCenterH)/(float)(tileMap[j][i][h].spriteH)};*/
+                                            tileCollisionPointOffset = {round((float)(MAP_TILE_WIDTH/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
+                                                                        round((float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
 
                                             if (prevDirection == 0) //Coming form the left
                                             {
@@ -1831,8 +1839,9 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                     {
                                         if (prevDirection != 0) //It does not come from the left
                                         {
-                                            /*tileCollisionPointOffset = {(float)(MAP_TILE_WIDTH/2)-(float)(tileMap[j+1][i][h].collision.x)*(float)(tileMap[j+1][i][h].spriteCenterW)/(float)(tileMap[j+1][i][h].spriteW),
-                                                                    (float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[j+1][i][h].collision.y)*(float)(tileMap[j+1][i][h].spriteCenterH)/(float)(tileMap[j+1][i][h].spriteH)};*/
+                                            tileCollisionPointOffset = {round((float)(MAP_TILE_WIDTH/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
+                                                                        round((float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
+
                                             if (prevDirection == 1) //Coming from the top
                                             {
                                                 //Adding a vertex on the top right corner
@@ -1863,8 +1872,8 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                     {
                                         if (prevDirection != 1) //It does not come from the top
                                         {
-                                            /*tileCollisionPointOffset = {(float)(MAP_TILE_WIDTH/2)-(float)(tileMap[j][i+1][h].collision.x)*(float)(tileMap[j][i+1][h].spriteCenterW)/(float)(tileMap[j][i+1][h].spriteW),
-                                                                    (float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[j][i+1][h].collision.y)*(float)(tileMap[j][i+1][h].spriteCenterH)/(float)(tileMap[j][i+1][h].spriteH)};*/
+                                            tileCollisionPointOffset = {round((float)(MAP_TILE_WIDTH/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
+                                                                        round((float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
 
                                             if (prevDirection == 2) //Coming from the right
                                             {
@@ -1896,8 +1905,8 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                     {
                                         if (prevDirection != 2) //It does not come from the right
                                         {
-                                            /*tileCollisionPointOffset = {(float)(MAP_TILE_WIDTH/2)-(float)(tileMap[j-1][i][h].collision.x)*(float)(tileMap[j-1][i][h].spriteCenterW)/(float)(tileMap[j-1][i][h].spriteW),
-                                                                    (float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[j-1][i][h].collision.y)*(float)(tileMap[j-1][i][h].spriteCenterH)/(float)(tileMap[j-1][i][h].spriteH)};*/
+                                            tileCollisionPointOffset = {round((float)(MAP_TILE_WIDTH/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
+                                                                        round((float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
 
                                             if (prevDirection == 3) //Coming from the bottom
                                             {
@@ -1994,7 +2003,7 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
 void terrainMap::render(SDL_Renderer* renderer, zPlane plane, int zLayerBottom, int zLayerTop)
 {
-    int variation = pseudoRand(zLayerBottom+zLayerTop+gCurWorldCoord.x*(gCurWorldCoord.x+ gCurWorldCoord.y));
+    int variation = abs(pseudoRand((zLayerBottom+zLayerTop+(gCurWorldCoord.x+1))*(gCurWorldCoord.x+ gCurWorldCoord.y+1)));
 
     for (int i = zLayerBottom; i <= zLayerTop; i++)
     {
@@ -2004,7 +2013,7 @@ void terrainMap::render(SDL_Renderer* renderer, zPlane plane, int zLayerBottom, 
             {
                 if (tileMap[k][j][plane].zLayer == i)
                 {
-                    variation = pseudoRand(variation+i+j*k+gCurWorldCoord.x*(gCurWorldCoord.x+ gCurWorldCoord.y))%tileMap[k][j][plane].spriteVariation;
+                    variation = abs(pseudoRand(variation+i+j*(k+gCurWorldCoord.x+1)*(gCurWorldCoord.x+ gCurWorldCoord.y+1))%tileMap[k][j][plane].spriteVariation);
                     tileMap[k][j][plane].render(renderer, (k*MAP_TILE_WIDTH+MAP_TILE_WIDTH/2),(j*MAP_TILE_HEIGHT+MAP_TILE_HEIGHT/2), variation);
                 }
             }
@@ -2750,15 +2759,15 @@ int main(int argc, char* argv[])
                 //Draw stuff on the renderer
                 SDL_RenderClear( gRenderer );
 
-                //gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, BACKGROUND);
+                gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, BACKGROUND);
 
-                //gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, MIDGROUND, 0, gPlayer.zLayer);
+                gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, MIDGROUND, 0, gPlayer.zLayer);
 
-                //gPlayer.render(gRenderer);
+                gPlayer.render(gRenderer);
 
-                //gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, MIDGROUND, gPlayer.zLayer, 9);
+                gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, MIDGROUND, gPlayer.zLayer, 9);
 
-                //gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, FOREGROUND);
+                gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, FOREGROUND);
 
                 /*********************
                 Display testing zone!
