@@ -153,6 +153,8 @@ enum collisionType
     RADIAL,
     BOX,
     GATE,
+    BOX_OL,
+    RAD_OL,
     COLLISION_COUNT
 };
 
@@ -161,7 +163,9 @@ const std::string collisionTypeName[COLLISION_COUNT]
     "NONE",
     "RADIAL",
     "BOX",
-    "GATE"
+    "GATE",
+    "BOX_OL",
+    "RAD_OL"
 };
 
 //class declaration
@@ -1645,7 +1649,7 @@ void terrain::render(SDL_Renderer* renderer, int posX, int posY, int variation)
 {
     SDL_Point center {spriteCenterW, spriteCenterH};
     SDL_Rect spriteQuad = {spritePosX + variation * spriteW, spritePosY, spriteW, spriteH};
-    SDL_Rect renderQuad = {(posX - spriteCenterW), (posY - spriteCenterH), spriteW, spriteH};
+    SDL_Rect renderQuad = {(posX - spriteW + spriteCenterW), (posY - spriteH + spriteCenterH), spriteW, spriteH};
 
     SDL_RenderCopyEx( renderer, gTerrainSprite, &spriteQuad, &renderQuad, 0, &center, SDL_FLIP_NONE );
 }
@@ -1720,7 +1724,8 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                         }
                                         else if (gTerrain[k].collide == RADIAL)
                                         {
-                                            circle tempCircle((floatPoint){j*MAP_TILE_WIDTH + MAP_TILE_WIDTH/2, i*MAP_TILE_HEIGHT + MAP_TILE_HEIGHT/2}, gTerrain[k].collision.x);
+                                            circle tempCircle((floatPoint){j*MAP_TILE_WIDTH + MAP_TILE_WIDTH/2 - gTerrain[k].spriteW/2 + gTerrain[k].spriteCenterW,
+                                                              i*MAP_TILE_HEIGHT + MAP_TILE_HEIGHT/2 - gTerrain[k].spriteH/2 + gTerrain[k].spriteCenterH}, gTerrain[k].collision.x);
                                             vCollisionRadial.push_back(tempCircle);
                                         }
                                         else if (gTerrain[k].collide == GATE)
@@ -1786,8 +1791,8 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
 
                         fileCollisionPolygon.push_back((floatPoint){0,0});
 
-                        floatPoint tileCollisionPointOffset = {round((float)(MAP_TILE_WIDTH/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
-                                                                round((float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
+                        floatPoint tileCollisionPointOffset = {round((float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
+                                                                round((float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
                         //tileCollisionPointOffset = {0,0};
 
                         //Adding the first vertex on the top left corner.
@@ -1799,15 +1804,15 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                             {
                                 if ((k + prevDirection)%4 == 0)
                                 {
-                                    tileCollisionPointOffset = {round((float)(MAP_TILE_WIDTH/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
-                                                                round((float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
+                                    tileCollisionPointOffset = {round((float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
+                                                                round((float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
 
                                     if (currTile.y -1 >= 0 && collisionMap[currTile.x][currTile.y - 1][h] == BOX) //Looking UP
                                     {
                                         if (prevDirection != 3) //It does not come from the bottom
                                         {
-                                            tileCollisionPointOffset = {round((float)(MAP_TILE_WIDTH/2)-(float)(tileMap[currTile.x][currTile.y-1][h].collision.x)*(float)(tileMap[currTile.x][currTile.y-1][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y-1][h].spriteW)),
-                                                                        round((float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
+                                            tileCollisionPointOffset = {round((float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)-(float)(tileMap[currTile.x][currTile.y-1][h].collision.x)*(float)(tileMap[currTile.x][currTile.y-1][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y-1][h].spriteW)),
+                                                                        round((float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
 
                                             if (prevDirection == 0) //Coming form the left
                                             {
@@ -1842,8 +1847,8 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                     {
                                         if (prevDirection != 0) //It does not come from the left
                                         {
-                                            tileCollisionPointOffset = {round((float)(MAP_TILE_WIDTH/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
-                                                                        round((float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[currTile.x+1][currTile.y][h].collision.y)*(float)(tileMap[currTile.x+1][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x+1][currTile.y][h].spriteH))};
+                                            tileCollisionPointOffset = {round((float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
+                                                                        round((float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)-(float)(tileMap[currTile.x+1][currTile.y][h].collision.y)*(float)(tileMap[currTile.x+1][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x+1][currTile.y][h].spriteH))};
 
                                             if (prevDirection == 1) //Coming from the top
                                             {
@@ -1875,8 +1880,8 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                     {
                                         if (prevDirection != 1) //It does not come from the top
                                         {
-                                            tileCollisionPointOffset = {round((float)(MAP_TILE_WIDTH/2)-(float)(tileMap[currTile.x][currTile.y+1][h].collision.x)*(float)(tileMap[currTile.x][currTile.y+1][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y+1][h].spriteW)),
-                                                                        round((float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
+                                            tileCollisionPointOffset = {round((float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)-(float)(tileMap[currTile.x][currTile.y+1][h].collision.x)*(float)(tileMap[currTile.x][currTile.y+1][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y+1][h].spriteW)),
+                                                                        round((float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)-(float)(tileMap[currTile.x][currTile.y][h].collision.y)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x][currTile.y][h].spriteH))};
 
                                             if (prevDirection == 2) //Coming from the right
                                             {
@@ -1908,8 +1913,8 @@ bool terrainMap::loadMap(int mapCoordX, int mapCoordY)
                                     {
                                         if (prevDirection != 2) //It does not come from the right
                                         {
-                                            tileCollisionPointOffset = {round((float)(MAP_TILE_WIDTH/2)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
-                                                                        round((float)(MAP_TILE_HEIGHT/2)-(float)(tileMap[currTile.x-1][currTile.y][h].collision.y)*(float)(tileMap[currTile.x-1][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x-1][currTile.y][h].spriteH))};
+                                            tileCollisionPointOffset = {round((float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)-(float)(tileMap[currTile.x][currTile.y][h].collision.x)*(float)(tileMap[currTile.x][currTile.y][h].spriteCenterW)/(float)(tileMap[currTile.x][currTile.y][h].spriteW)),
+                                                                        round((float)(tileMap[currTile.x][currTile.y][h].spriteCenterH)-(float)(tileMap[currTile.x-1][currTile.y][h].collision.y)*(float)(tileMap[currTile.x-1][currTile.y][h].spriteCenterH)/(float)(tileMap[currTile.x-1][currTile.y][h].spriteH))};
 
                                             if (prevDirection == 3) //Coming from the bottom
                                             {
@@ -2011,10 +2016,42 @@ void terrainMap::render(SDL_Renderer* renderer, zPlane plane, int zLayerBottom, 
         {
             for (int k = 0; k < TILE_NUMBER_WIDTH; k++)
             {
+                bool display = true;
+
                 if (tileMap[k][j][plane].zLayer == i)
                 {
-                    variation = abs(pseudoRand(variation+i+j*(k+gCurWorldCoord.x+1)*(gCurWorldCoord.x+ gCurWorldCoord.y+1))%tileMap[k][j][plane].spriteVariation);
-                    tileMap[k][j][plane].render(renderer, (k*MAP_TILE_WIDTH+MAP_TILE_WIDTH/2),(j*MAP_TILE_HEIGHT+MAP_TILE_HEIGHT/2), variation);
+                    if (tileMap[k][j][plane].collide == BOX_OL)
+                    {
+                        polygon tempCollisionBox = (floatPoint){(k*MAP_TILE_WIDTH+tileMap[k][j][plane].spriteCenterW),(j*MAP_TILE_HEIGHT+tileMap[k][j][plane].spriteCenterH)};
+                        tempCollisionBox.addVertex((floatPoint){tileMap[k][j][plane].collision.x/-2, tileMap[k][j][plane].collision.y/-2});
+                        tempCollisionBox.addVertex((floatPoint){tileMap[k][j][plane].collision.x/2, tileMap[k][j][plane].collision.y/-2});
+                        tempCollisionBox.addVertex((floatPoint){tileMap[k][j][plane].collision.x/2, tileMap[k][j][plane].collision.y/2});
+                        tempCollisionBox.addVertex((floatPoint){tileMap[k][j][plane].collision.x/-2, tileMap[k][j][plane].collision.y/2});
+
+                        floatPoint tempMTV = pointInsidePolygon(gPlayer.position, tempCollisionBox);
+
+                        if (tempMTV.x == 0 && tempMTV.y == 0)
+                        {
+                            display = false;
+                        }
+                    }
+                    else if (tileMap[k][j][plane].collide == RAD_OL)
+                    {
+                        circle tempCollisionRadial((floatPoint){(k*MAP_TILE_WIDTH+tileMap[k][j][plane].spriteCenterW),(j*MAP_TILE_HEIGHT+tileMap[k][j][plane].spriteCenterH)}, tileMap[k][j][plane].collision.x);
+
+                        floatPoint tempMTV = pointInsideCircle(gPlayer.position, tempCollisionRadial);
+
+                        if (tempMTV.x == 0 && tempMTV.y == 0)
+                        {
+                            display = false;
+                        }
+                    }
+
+                    if (display)
+                    {
+                        variation = abs(pseudoRand(variation+i+j*(k+gCurWorldCoord.x+1)*(gCurWorldCoord.x+ gCurWorldCoord.y+1))%tileMap[k][j][plane].spriteVariation);
+                        tileMap[k][j][plane].render(renderer, (k*MAP_TILE_WIDTH+MAP_TILE_WIDTH/2),(j*MAP_TILE_HEIGHT+MAP_TILE_HEIGHT/2), variation);
+                    }
                 }
             }
         }
@@ -2761,7 +2798,7 @@ int main(int argc, char* argv[])
 
                 /*********************
                 Rendering the different elements to the renderer.
-                **********************
+                **********************/
 
                 gWorld[gCurWorldCoord.x][gCurWorldCoord.y].render(gRenderer, BACKGROUND);
 
